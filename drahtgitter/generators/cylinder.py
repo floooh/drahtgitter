@@ -97,7 +97,7 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
             triIndex += 1
         mesh.setTriangle(triIndex, Triangle((rowA+i, rowB+i, rowA), 0))
         triIndex += 1
-        mesh.setTriangle(triIndex, Triangle((rowA, rowB+1, rowB), 0))
+        mesh.setTriangle(triIndex, Triangle((rowA, rowB+i, rowB), 0))
         triIndex += 1
 
     # top cap triangles
