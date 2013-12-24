@@ -4,66 +4,191 @@
 '''
 
 import unittest
-import drahtgitter.core as dg
+from drahtgitter.core import *
+import drahtgitter.generators.cube as cube
+import drahtgitter.operators.computeTriangleNormals as computeTriangleNormals
+import drahtgitter.writers.stlascii as stlascii
 
 class TestMesh(unittest.TestCase) :
 
     def test_VertexComponent(self) :
         # create a few valid vertex component objects
-        vc = dg.VertexComponent('position', 0, 3)
-        self.assertEqual(vc.name, 'position')
-        self.assertEqual(vc.index, 0)
+        vc = VertexComponent(('position', 0), 3)
+        self.assertEqual(vc.nameAndIndex[0], 'position')
+        self.assertEqual(vc.nameAndIndex[1], 0)
         self.assertEqual(vc.size, 3)
         self.assertEqual(vc.offset, 0)
 
-        vc = dg.VertexComponent('texcoord', 3, 2)
-        self.assertEqual(vc.name, 'texcoord')
-        self.assertEqual(vc.index, 3)
+        vc = VertexComponent(('texcoord', 3), 2)
+        self.assertEqual(vc.nameAndIndex[0], 'texcoord')
+        self.assertEqual(vc.nameAndIndex[1], 3)
         self.assertEqual(vc.size, 2)
         self.assertEqual(vc.offset, 0)
         vc.validate()
 
         # vertex layout with invalid name
-        vc = dg.VertexComponent('bla', 0, 1)
+        vc = VertexComponent(('bla', 0), 1)
         self.assertRaises(Exception, vc.validate)
 
         # vertex layout with invalid offset
-        vc = dg.VertexComponent('position', -1, 3)
+        vc = VertexComponent(('position', -1), 3)
         self.assertRaises(Exception, vc.validate)
-        vc = dg.VertexComponent('position', 17, 3)
+        vc = VertexComponent(('position', 17), 3)
         self.assertRaises(Exception, vc.validate)
 
         # vertex layout with invalid size
-        vc = dg.VertexComponent('position', 0, 0)
+        vc = VertexComponent(('position', 0), 0)
         self.assertRaises(Exception, vc.validate)
-        vc = dg.VertexComponent('position', 5, 0)
+        vc = VertexComponent(('position', 5), 0)
         self.assertRaises(Exception, vc.validate)
 
     def test_VertexLayout(self) :
         # create an empty vertex layout object
-        vl = dg.VertexLayout()
-        self.assertEqual(vl.current_offset, 0)
+        vl = VertexLayout()
+        self.assertEqual(vl.currentOffset, 0)
 
         # add a few vertex components (position, normal and 2 texcoord sets)
-        vl.add(dg.VertexComponent('position', 0, 3))
-        vl.add(dg.VertexComponent('normal', 0, 3))
-        vl.add(dg.VertexComponent('texcoord', 0, 2))
-        vl.add(dg.VertexComponent('texcoord', 1, 2))
-        self.assertEqual(vl.current_offset, 10)
+        pos0 = ('position', 0)
+        norm0 = ('normal', 0)
+        tex0 = ('texcoord', 0)
+        tex1 = ('texcoord', 1)
+        vl.add(VertexComponent(pos0, 3))
+        vl.add(VertexComponent(norm0, 3))
+        vl.add(VertexComponent(tex0, 2))
+        vl.add(VertexComponent(tex1, 2))
+
+        self.assertEqual(vl.currentOffset, 10)
         self.assertEqual(len(vl.vertexComponents), 4)
-        self.assertTrue(vl.contains('position', 0))
-        self.assertTrue(vl.contains('normal', 0))
-        self.assertTrue(vl.contains('texcoord', 0))
-        self.assertTrue(vl.contains('texcoord', 1))
-        self.assertFalse(vl.contains('position', 1))
-        self.assertFalse(vl.contains('bla', 0))
-        self.assertEqual(vl.vertexComponents[('position', 0)].offset, 0)
-        self.assertEqual(vl.vertexComponents[('normal', 0)].offset, 3)
-        self.assertEqual(vl.vertexComponents[('texcoord', 0)].offset, 6)
-        self.assertEqual(vl.vertexComponents[('texcoord', 1)].offset, 8)
+
+        self.assertTrue(vl.contains(pos0))
+        self.assertTrue(vl.contains(norm0))
+        self.assertTrue(vl.contains(tex0))
+        self.assertTrue(vl.contains(tex1))
+        self.assertFalse(vl.contains( ('position', 1) ))
+        self.assertFalse(vl.contains( ('bla', 0) ))
+
+        self.assertEqual(vl.vertexComponents[pos0].offset, 0)
+        self.assertEqual(vl.vertexComponents[norm0].offset, 3)
+        self.assertEqual(vl.vertexComponents[tex0].offset, 6)
+        self.assertEqual(vl.vertexComponents[tex1].offset, 8)
         vl.validate()
+
+        self.assertEqual(vl.getComponent(pos0).nameAndIndex[0], 'position')
+        self.assertEqual(vl.getComponent(pos0).nameAndIndex[1], 0)
+
+        self.assertEqual(vl.size(), 10)
+
+    def test_Mesh(self) :
+
+        # create mesh with a simple vertex layout 
+        vl = VertexLayout()
+        pos0 = ('position', 0)
+        norm0 = ('normal', 0)
+        tex0 = ('texcoord', 0)
+        vl.add(VertexComponent(pos0, 3))
+        vl.add(VertexComponent(norm0, 3))
+        vl.add(VertexComponent(tex0, 2))
+        
+        mesh = Mesh(vl, 3)
+
+        self.assertEqual(mesh.getComponent(pos0).nameAndIndex[0], 'position')
+        self.assertEqual(mesh.getComponent(pos0).nameAndIndex[1], 0)
+        self.assertEqual(mesh.getComponent(norm0).offset, 3)
+        self.assertEqual(mesh.getComponent(tex0).size, 2)
+
+        self.assertEqual(mesh.getComponentOffset(norm0), 3)
+        self.assertEqual(mesh.getComponentSize(norm0), 3)
+
+        # add 3 vertices
+        mesh.setVertex(0, pos0, Vector(1.0, 2.0, 3.0))
+        mesh.setVertex(0, norm0,  Vector(1.0, 0.0, 0.0))
+        mesh.setVertex(0, tex0, Vector(0.0, 0.0))
+
+        mesh.setVertex(1, pos0, Vector(2.0, 3.0, 4.0))
+        mesh.setVertex(1, norm0, Vector(0.0, 1.0, 0.0))
+        mesh.setVertex(1, tex0, Vector(1.0, 0.0))
+
+        mesh.setVertex(2, pos0, Vector(3.0, 4.0, 5.0))
+        mesh.setVertex(2, norm0, Vector(0.0, 0.0, 1.0))
+        mesh.setVertex(2, tex0, Vector(1.0, 1.0))
+
+        self.assertEqual(mesh.getVertex(0, pos0), Vector(1.0, 2.0, 3.0))
+        self.assertEqual(mesh.getVertex(1, pos0), Vector(2.0, 3.0, 4.0))
+        self.assertEqual(mesh.getVertex(2, pos0), Vector(3.0, 4.0, 5.0))
+
+        self.assertEqual(mesh.getVertex(0, norm0), Vector(1.0, 0.0, 0.0))
+        self.assertEqual(mesh.getVertex(1, norm0), Vector(0.0, 1.0, 0.0))
+        self.assertEqual(mesh.getVertex(2, norm0), Vector(0.0, 0.0, 1.0))
+
+        self.assertEqual(mesh.getVertex(0, tex0), Vector(0.0, 0.0))
+        self.assertEqual(mesh.getVertex(1, tex0), Vector(1.0, 0.0))
+        self.assertEqual(mesh.getVertex(2, tex0), Vector(1.0, 1.0))
+
+        self.assertEqual(mesh.vertexBuffer[0], 1.0)
+        self.assertEqual(mesh.vertexBuffer[1], 2.0)
+        self.assertEqual(mesh.vertexBuffer[2], 3.0)
+        self.assertEqual(mesh.vertexBuffer[3], 1.0)
+        self.assertEqual(mesh.vertexBuffer[4], 0.0)
+        self.assertEqual(mesh.vertexBuffer[5], 0.0)
+        self.assertEqual(mesh.vertexBuffer[6], 0.0)
+        self.assertEqual(mesh.vertexBuffer[7], 0.0)
+
+        self.assertEqual(mesh.vertexBuffer[8], 2.0)
+        self.assertEqual(mesh.vertexBuffer[9], 3.0)
+        self.assertEqual(mesh.vertexBuffer[10], 4.0)
+        self.assertEqual(mesh.vertexBuffer[11], 0.0)
+        self.assertEqual(mesh.vertexBuffer[12], 1.0)
+        self.assertEqual(mesh.vertexBuffer[13], 0.0)
+        self.assertEqual(mesh.vertexBuffer[14], 1.0)
+        self.assertEqual(mesh.vertexBuffer[15], 0.0)
+
+        self.assertEqual(mesh.vertexBuffer[16], 3.0)
+        self.assertEqual(mesh.vertexBuffer[17], 4.0)
+        self.assertEqual(mesh.vertexBuffer[18], 5.0)
+        self.assertEqual(mesh.vertexBuffer[19], 0.0)
+        self.assertEqual(mesh.vertexBuffer[20], 0.0)
+        self.assertEqual(mesh.vertexBuffer[21], 1.0)
+        self.assertEqual(mesh.vertexBuffer[22], 1.0)
+        self.assertEqual(mesh.vertexBuffer[23], 1.0)
+
+        self.assertRaises(IndexError, lambda: mesh.vertexBuffer[24])
+        self.assertRaises(IndexError, mesh.getVertex, 3, pos0);
+
+    def test_CubeGenerator(self) :
+
+        vl = VertexLayout()
+        pos0  = ('position', 0)
+        norm0 = ('normal', 0)
+        tex0  = ('texcoord', 0)
+        vl.add(VertexComponent(pos0, 3))
+        vl.add(VertexComponent(norm0, 3))
+        vl.add(VertexComponent(tex0, 2))
+
+        mesh = cube.generateMesh(vl, Vector(2.0, 2.0, 2.0))
+        self.assertEqual(mesh.getNumVertices(), 24)
+        self.assertEqual(mesh.getNumTriangles(), 12)
+        mesh = computeTriangleNormals.do(mesh)
+        
+
+        n0 = mesh.triangles[0].normal
+        n1 = mesh.triangles[1].normal
+
+        self.assertEqual(mesh.triangles[0].normal, mesh.triangles[1].normal)
+        self.assertEqual(mesh.triangles[2].normal, mesh.triangles[3].normal)
+        self.assertEqual(mesh.triangles[4].normal, mesh.triangles[5].normal)
+        self.assertEqual(mesh.triangles[6].normal, mesh.triangles[7].normal)
+        self.assertEqual(mesh.triangles[8].normal, mesh.triangles[9].normal)
+        self.assertEqual(mesh.triangles[10].normal, mesh.triangles[11].normal)
+
+        self.assertEqual(mesh.triangles[0].normal, mesh.getVertex(0, norm0))
+        self.assertEqual(mesh.triangles[2].normal, mesh.getVertex(4, norm0))
+        self.assertEqual(mesh.triangles[4].normal, mesh.getVertex(8, norm0))
+        self.assertEqual(mesh.triangles[6].normal, mesh.getVertex(12, norm0))
+        self.assertEqual(mesh.triangles[8].normal, mesh.getVertex(16, norm0))
+        self.assertEqual(mesh.triangles[10].normal, mesh.getVertex(20, norm0))
+
+        stlascii.write(mesh, 'data/cube_ascii.stl')
 
 if __name__ == '__main__':
     unittest.main()
 #--- eof
-
