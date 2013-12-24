@@ -9,6 +9,9 @@ def generateMesh(vertexLayout, size=Vector(1.0, 1.0, 1.0), origin=Vector(0.0, 0.
     '''
     Generate a cube mesh with given vertex layout, size and origin
     '''
+    pos0 = ('position', 0)
+    norm0 = ('normal', 0)
+    tex0 = ('texcoord', 0)
 
     coords = [  Vector(-0.5, -0.5, -0.5), Vector(-0.5, -0.5, +0.5),
                 Vector(+0.5, -0.5, +0.5), Vector(+0.5, -0.5, -0.5),
@@ -28,19 +31,14 @@ def generateMesh(vertexLayout, size=Vector(1.0, 1.0, 1.0), origin=Vector(0.0, 0.
               [0, 1, 2, 3], [3, 0, 1, 2], [0, 1, 2, 3] ]
 
     mesh = Mesh(vertexLayout, 24, 12)
-    pos0 = ('position', 0)
-    norm0 = ('normal', 0)
-    tex0 = ('texcoord', 0)
 
     for i in range(0, 6) :
         for j in range(0, 4) :
             vertIndex = i * 4 + j
             coord = coords[coordMap[i][j]] * size + origin
             mesh.setVertex(vertIndex, pos0, coord)
-            if (vertexLayout.contains(norm0)) :
-                mesh.setVertex(vertIndex, norm0, norms[i])
-            if (vertexLayout.contains(tex0)) :
-                mesh.setVertex(vertIndex, tex0, uvs[uvMap[i][j]])
+            mesh.setVertex(vertIndex, norm0, norms[i])
+            mesh.setVertex(vertIndex, tex0, uvs[uvMap[i][j]])
 
         triIndex = i * 2
         triVertIndex = i * 4

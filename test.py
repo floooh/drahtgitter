@@ -6,6 +6,7 @@
 import unittest
 from drahtgitter.core import *
 import drahtgitter.generators.cube as cube
+import drahtgitter.generators.cylinder as cylinder
 import drahtgitter.operators.computeTriangleNormals as computeTriangleNormals
 import drahtgitter.writers.stlascii as stlascii
 
@@ -230,6 +231,19 @@ class TestMesh(unittest.TestCase) :
         self.assertEqual(mesh.triangles[10].normal, mesh.getVertex(20, norm0))
 
         stlascii.write(mesh, 'data/cube_ascii.stl')
+
+    def test_CylinderGenerator(self) :
+        vl = VertexLayout()
+        pos0 = ('position', 0)
+        norm0 = ('normal', 0)
+        tex0 = ('texcoord', 0)
+        vl.add(VertexComponent(pos0, 3))
+        vl.add(VertexComponent(norm0, 3))
+        vl.add(VertexComponent(tex0, 2))
+
+        mesh = cylinder.generateMesh(vl, 1.0, 1.0, 4.0, 36, 1)
+        mesh = computeTriangleNormals.do(mesh)
+        stlascii.write(mesh, 'data/cylinder_ascii.stl')
 
 if __name__ == '__main__':
     unittest.main()

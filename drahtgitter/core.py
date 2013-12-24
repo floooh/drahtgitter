@@ -243,30 +243,32 @@ class Mesh :
         '''
         Set the float values of a vertex component from a vector object.
         '''
-        comp = self.vertexLayout.getComponent(nameAndIndex)
-        vbOffset = comp.offset + vertexIndex * self.vertexLayout.size()
-        self.vertexBuffer[vbOffset] = vec.x
-        if comp.size > 1 :
-            self.vertexBuffer[vbOffset + 1] = vec.y
-        if comp.size > 2 :
-            self.vertexBuffer[vbOffset + 2] = vec.z
-        if comp.size > 3 :
-            self.vertexBuffer[vbOffset + 3] = vec.w
+        if self.vertexLayout.contains(nameAndIndex) :
+            comp = self.vertexLayout.getComponent(nameAndIndex)
+            vbOffset = comp.offset + vertexIndex * self.vertexLayout.size()
+            self.vertexBuffer[vbOffset] = vec.x
+            if comp.size > 1 :
+                self.vertexBuffer[vbOffset + 1] = vec.y
+            if comp.size > 2 :
+                self.vertexBuffer[vbOffset + 2] = vec.z
+            if comp.size > 3 :
+                self.vertexBuffer[vbOffset + 3] = vec.w
 
     def getVertex(self, vertexIndex, nameAndIndex) :
         '''
         Return a Vector object with the values of a vertex component
         '''
-        comp = self.vertexLayout.getComponent(nameAndIndex)
-        vbOffset = comp.offset + vertexIndex * self.vertexLayout.size()
         vec = Vector()
-        vec.x = self.vertexBuffer[vbOffset]
-        if comp.size > 1 :
-            vec.y = self.vertexBuffer[vbOffset + 1]
-        if comp.size > 2 :
-            vec.z = self.vertexBuffer[vbOffset + 2]
-        if comp.size > 3 :
-            vec.w = self.vertexBuffer[vbOffset + 3]
+        if self.vertexLayout.contains(nameAndIndex) :
+            comp = self.vertexLayout.getComponent(nameAndIndex)
+            vbOffset = comp.offset + vertexIndex * self.vertexLayout.size()
+            vec.x = self.vertexBuffer[vbOffset]
+            if comp.size > 1 :
+                vec.y = self.vertexBuffer[vbOffset + 1]
+            if comp.size > 2 :
+                vec.z = self.vertexBuffer[vbOffset + 2]
+            if comp.size > 3 :
+                vec.w = self.vertexBuffer[vbOffset + 3]
         return vec
 
 #--- eof
