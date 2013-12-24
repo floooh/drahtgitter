@@ -9,6 +9,48 @@ import drahtgitter.generators.cube as cube
 import drahtgitter.operators.computeTriangleNormals as computeTriangleNormals
 import drahtgitter.writers.stlascii as stlascii
 
+class TestMath(unittest.TestCase) :
+
+    def test_Vector(self) :
+
+        v0 = Vector()
+        v1 = Vector(1.0)
+        v2 = Vector(1.0, 2.0)
+        v3 = Vector(1.0, 2.0, 3.0)
+        v4 = Vector(1.0, 2.0, 3.0, 4.0)
+        self.assertTrue(v0.x == 0.0 and v0.y == 0.0 and v0.z == 0.0 and v0.w == 0.0)
+        self.assertTrue(v1.x == 1.0 and v1.y == 0.0 and v1.z == 0.0 and v1.w == 0.0)
+        self.assertTrue(v2.x == 1.0 and v2.y == 2.0 and v2.z == 0.0 and v2.w == 0.0)
+        self.assertTrue(v3.x == 1.0 and v3.y == 2.0 and v3.z == 3.0 and v3.w == 0.0)
+        self.assertTrue(v4.x == 1.0 and v4.y == 2.0 and v4.z == 3.0 and v4.w == 4.0)
+
+        v0 = Vector(1.0, 2.0, 3.0, 4.0)
+        v1 = Vector(1.0, 2.0, 3.0, 4.0)
+        v2 = Vector(2.0, 3.0, 4.0, 5.0)
+        v3 = Vector(1.0, 2.0, 1.0, 4.0)
+        self.assertTrue(v0 == v1)
+        self.assertTrue(v0 != v2)
+        self.assertTrue(v0 != v3)
+
+        v4 = v0 + v2
+        self.assertTrue(v4 == Vector(3.0, 5.0, 7.0, 9.0))
+        v5 = v4 - v2
+        self.assertTrue(v5 == v0)
+        v6 = v2 * v3
+        self.assertTrue(v6 == Vector(2.0, 6.0, 4.0, 20.0))
+        v7 = Vector.scale(v2, 3.0)
+        self.assertTrue(v7 == Vector(6.0, 9.0, 12.0, 15.0))
+        self.assertEqual(Vector.length(Vector(3.0, 4.0, 0.0, 0.0)), 5.0)
+        self.assertEqual(Vector.cross3(Vector(1.0, 0.0, 0.0), Vector(0.0, 1.0, 0.0)), Vector(0.0, 0.0, 1.0))
+        v0 = Vector(1.0, 0.0, 0.0)
+        v1 = Vector(1.0, 0.0, 0.0)
+        v2 = Vector(0.0, 1.0, 0.0)
+        v3 = Vector(-1.0, 0.0, 0.0)
+        self.assertEqual(Vector.dot3(v0, v1), 1.0)
+        self.assertEqual(Vector.dot3(v0, v2), 0.0)
+        self.assertEqual(Vector.dot3(v0, v3), -1.0)
+        self.assertTrue(abs(Vector.length(Vector.normalize(Vector(1.0, 2.0, 3.0, 4.0))) - 1.0) < 0.00001)
+
 class TestMesh(unittest.TestCase) :
 
     def test_VertexComponent(self) :

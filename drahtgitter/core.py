@@ -50,17 +50,27 @@ class Vector :
     def __mul__(self, rhs) :
         return Vector(self.x * rhs.x, self.y * rhs.y, self.z * rhs.z, self.w * rhs.w)
 
-    def scale(self, s) :
-        return Vector(self.x * s, self.y * s, self.z * s, self.w * s)
+    @staticmethod
+    def equal(v0, v1, tolerance) :
+        bx = abs(v1.x - v0.x) < tolerance
+        by = abs(v1.y - v0.y) < tolerance
+        bz = abs(v1.z - v0.z) < tolerance
+        bw = abs(v1.w - v0.z) < tolerance
+        return bx and by and bz and bw
 
-    def length(self) :
-        return math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w)
+    @staticmethod
+    def scale(v, s) :
+        return Vector(v.x * s, v.y * s, v.z * s, v.w * s)
+
+    @staticmethod
+    def length(v) :
+        return math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w)
 
     @staticmethod
     def cross3(v0, v1) :
         x = v0.y * v1.z - v0.z * v1.y
         y = v0.z * v1.x - v0.x * v1.z
-        z = v0.x * v1.y - v0.y * v1.z
+        z = v0.x * v1.y - v0.y * v1.x
         return Vector(x, y, z)
 
     @staticmethod
@@ -69,7 +79,7 @@ class Vector :
 
     @staticmethod
     def normalize(v) :
-        l = v.length()
+        l = Vector.length(v)
         return Vector(v.x / l, v.y / l, v.z / l, v.w / l)
 
 #-------------------------------------------------------------------------------
