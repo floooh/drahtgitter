@@ -48,7 +48,7 @@ class Vector :
         return Vector(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z, self.w - rhs.w)
 
     def __mul__(self, rhs) :
-        return Vector(self.x * rhs.x, self.y * rhs.y, self.z * rhs.z, self.w - rhs.w)
+        return Vector(self.x * rhs.x, self.y * rhs.y, self.z * rhs.z, self.w * rhs.w)
 
     def scale(self, s) :
         return Vector(self.x * s, self.y * s, self.z * s, self.w * s)
