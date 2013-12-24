@@ -8,7 +8,7 @@ from ..core import *
 #-------------------------------------------------------------------------------
 def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStacks) :
     '''
-    Generate cylinde mesh
+    Generate cylinder mesh
     '''
     pos0 = ('position', 0)
     norm0 = ('normal', 0)
@@ -30,12 +30,12 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
         normalXY = length / sideLength
         normalZ  = -deltaRadius / sideLength
 
+    # initialize mesh object
     numVerts = 2 * (numSlices+1) + (numStacks+1) * numSlices
     numTris  = 2 * numSlices + numSlices * numStacks * 2
-
     mesh = Mesh(vertexLayout, numVerts, numTris)
 
-    # base cap
+    # base cap vertices
     curVertexIndex = 0
     baseZ = -0.5 * length
     mesh.setVertex(curVertexIndex, pos0, Vector(0.0, 0.0, baseZ))
@@ -47,7 +47,7 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
         mesh.setVertex(curVertexIndex, norm0, Vector(0.0, 0.0, -1.0))
         curVertexIndex += 1
 
-    # stacks
+    # stack vertices
     for j in range(0, numStacks + 1) :
         frac = float(j) / float(numStacks)
         z = length * (frac - 0.5)
@@ -60,7 +60,7 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
             mesh.setVertex(curVertexIndex, norm0, norm)
             curVertexIndex += 1
 
-    # top cap
+    # top cap vertices
     topZ = 0.5 * length
     for i in range(0, numSlices) :
         pos = Vector(topRadius * sinTable[i], topRadius * cosTable[i], topZ)
@@ -116,3 +116,5 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
         raise Exception("Triangle count mismatch")
 
     return mesh
+
+#--- eof

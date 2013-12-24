@@ -7,6 +7,7 @@ import unittest
 from drahtgitter.core import *
 import drahtgitter.generators.cube as cube
 import drahtgitter.generators.cylinder as cylinder
+import drahtgitter.generators.sphere as sphere
 import drahtgitter.operators.computeTriangleNormals as computeTriangleNormals
 import drahtgitter.writers.stlascii as stlascii
 
@@ -245,9 +246,22 @@ class TestMesh(unittest.TestCase) :
         mesh = computeTriangleNormals.do(mesh)
         stlascii.write(mesh, 'data/cylinder_ascii.stl')
 
-        mesh = cylinder.generateMesh(vl, 0.5, 2.0, 4.0, 18, 4)
+        mesh = cylinder.generateMesh(vl, 2.0, 0.5, 4.0, 18, 4)
         mesg = computeTriangleNormals.do(mesh)
         stlascii.write(mesh, 'data/complex_cylinder_ascii.stl')
+
+    def test_SphereGenerator(self) :
+        vl = VertexLayout()
+        pos0 = ('position', 0)
+        norm0 = ('normal', 0)
+        tex0 = ('texcoord', 0)
+        vl.add(VertexComponent(pos0, 3))
+        vl.add(VertexComponent(norm0, 3))
+        vl.add(VertexComponent(tex0, 2))
+
+        mesh = sphere.generateMesh(vl, 2.0, 38, 18)
+        mesh = computeTriangleNormals.do(mesh)
+        stlascii.write(mesh, 'data/sphere_ascii.stl')
 
 if __name__ == '__main__':
     unittest.main()
