@@ -245,6 +245,10 @@ class TestMesh(unittest.TestCase) :
         mesh = computeTriangleNormals.do(mesh)
         stlascii.write(mesh, 'data/cylinder_ascii.stl')
 
+        mesh = cylinder.generateMesh(vl, 0.5, 2.0, 4.0, 18, 4)
+        mesg = computeTriangleNormals.do(mesh)
+        stlascii.write(mesh, 'data/complex_cylinder_ascii.stl')
+
 if __name__ == '__main__':
     unittest.main()
 #--- eof

@@ -32,6 +32,7 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
 
     numVerts = 2 * (numSlices+1) + (numStacks+1) * numSlices
     numTris  = 2 * numSlices + numSlices * numStacks * 2
+
     mesh = Mesh(vertexLayout, numVerts, numTris)
 
     # base cap
@@ -83,7 +84,8 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
     for i in range(0, numSlices-1) :
         mesh.setTriangle(triIndex, Triangle((rowA, rowB+i, rowB+i+1), 0))
         triIndex += 1
-    mesh.setTriangle(triIndex, Triangle((rowA, rowB+1, rowB), 0))
+    i += 1
+    mesh.setTriangle(triIndex, Triangle((rowA, rowB+i, rowB), 0))
     triIndex += 1
 
     # stack triangles
@@ -95,6 +97,7 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
             triIndex += 1
             mesh.setTriangle(triIndex, Triangle((rowA+i+1, rowB+i, rowB+i+1), 0))
             triIndex += 1
+        i += 1
         mesh.setTriangle(triIndex, Triangle((rowA+i, rowB+i, rowA), 0))
         triIndex += 1
         mesh.setTriangle(triIndex, Triangle((rowA, rowB+i, rowB), 0))
@@ -106,6 +109,7 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
     for i in range(0, numSlices - 1) :
         mesh.setTriangle(triIndex, Triangle((rowA+i, rowB, rowA+i+1), 0))
         triIndex += 1
+    i += 1
     mesh.setTriangle(triIndex, Triangle((rowA+i, rowB, rowA), 0))
     triIndex += 1
     if triIndex != mesh.getNumTriangles() :
