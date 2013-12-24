@@ -1,3 +1,3 @@
 # __init__.py
 
-__all__ = ['cube', 'cylinder', 'sphere']
+__all__ = ['cube', 'cylinder', 'sphere', 'torus']
