@@ -169,7 +169,7 @@ class VertexLayout :
         Get a component object by its nameAndIndex type
         '''
         if not self.contains(nameAndIndex) :
-            raiseException('Invalid vertex component type ' + nameAndIndex)
+            raise Exception('Invalid vertex component type ' + nameAndIndex)
         return self.vertexComponents[nameAndIndex] 
 
     def size(self) :
@@ -187,7 +187,7 @@ class Mesh :
         '''
         self.vertexBuffer = array('f', [0.0] * numVertices * layout.size())
         self.vertexLayout = layout
-        self.triangles    = [Triangle()] * numTriangles
+        self.triangles    = [Triangle() for _ in range(0, numTriangles)]
 
     def addVertices(self, num) :
         '''
@@ -270,6 +270,65 @@ class Mesh :
             if comp.size > 3 :
                 vec.w = self.vertexBuffer[vbOffset + 3]
         return vec
+
+#-------------------------------------------------------------------------------
+class VertexKey :
+    ''' 
+    A key class for sorting vertices.
+    '''
+    def __init__(self, mesh, index) :
+        self.index = index
+        self.mesh  = mesh;
+
+    def cmp(self, other) :
+
+        selfSize = self.mesh.vertexLayout.size()
+        otherSize = other.mesh.vertexLayout.size()
+        if selfSize != otherSize :
+            raise Exception('comparison meshes must be identical')
+        selfIndex = self.index * selfSize
+        otherIndex = other.index * otherSize
+        for i in range(0, selfSize) :
+            selfValue  = self.mesh.vertexBuffer[selfIndex + i]
+            otherValue = other.mesh.vertexBuffer[otherIndex + i]
+            if selfValue < otherValue :
+                return -1
+            elif selfValue > otherValue :
+                return 1
+        # fallthrough: vertices are identical
+        return 0
+
+    def __lt__(self, other) :
+        return self.cmp(other) < 0
+    def __gt__(self, other) :
+        return self.cmp(other) > 0
+    def __eq__(self, other) :
+        return self.cmp(other) == 0
+    def __le__(self, other) :
+        return self.cmp(other) <= 0
+    def __ge__(self, other) :
+        return self.cmp(other) >= 0
+    def __ne__(self, other) :
+        return self.cmp(other) != 0
+
+#-------------------------------------------------------------------------------
+class VertexKeyMap :
+    '''
+    Holds a mesh reference and a list of (usually sorted) VertexKeys. Mainly
+    used to find and remove duplicate vertices from a mesh
+    '''
+    def __init__(self, mesh=None) :
+        self.mesh = mesh
+        if mesh != None :
+            self.keys = [VertexKey(mesh, i) for i in range(0, mesh.getNumVertices())]
+        else :
+            self.keys = None
+
+    def sort(self) :
+        '''
+        Sort the contained vertex key
+        '''
+        self.keys = sorted(self.keys)
 
 #--- eof
 

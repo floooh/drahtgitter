@@ -10,6 +10,8 @@ import drahtgitter.generators.cylinder as cylinder
 import drahtgitter.generators.sphere as sphere
 import drahtgitter.generators.torus as torus
 import drahtgitter.operators.computeTriangleNormals as computeTriangleNormals
+import drahtgitter.operators.fixVertexComponents as fixVertexComponents
+import drahtgitter.operators.deflate as deflate
 import drahtgitter.writers.stlascii as stlascii
 
 class TestMath(unittest.TestCase) :
@@ -54,7 +56,18 @@ class TestMath(unittest.TestCase) :
         self.assertEqual(Vector.dot3(v0, v3), -1.0)
         self.assertTrue(abs(Vector.length(Vector.normalize(Vector(1.0, 2.0, 3.0, 4.0))) - 1.0) < 0.00001)
 
+pos0 = ('position', 0)
+norm0 = ('normal', 0)
+tex0 = ('texcoord', 0)
+
 class TestMesh(unittest.TestCase) :
+
+    def _buildVertexLayout(self) :
+        vl = VertexLayout()
+        vl.add(VertexComponent(pos0, 3))
+        vl.add(VertexComponent(norm0, 3))
+        vl.add(VertexComponent(tex0, 2))
+        return vl        
 
     def test_VertexComponent(self) :
         # create a few valid vertex component objects
@@ -126,14 +139,7 @@ class TestMesh(unittest.TestCase) :
     def test_Mesh(self) :
 
         # create mesh with a simple vertex layout 
-        vl = VertexLayout()
-        pos0 = ('position', 0)
-        norm0 = ('normal', 0)
-        tex0 = ('texcoord', 0)
-        vl.add(VertexComponent(pos0, 3))
-        vl.add(VertexComponent(norm0, 3))
-        vl.add(VertexComponent(tex0, 2))
-        
+        vl = self._buildVertexLayout()
         mesh = Mesh(vl, 3)
 
         self.assertEqual(mesh.getComponent(pos0).nameAndIndex[0], 'position')
@@ -201,14 +207,7 @@ class TestMesh(unittest.TestCase) :
 
     def test_CubeGenerator(self) :
 
-        vl = VertexLayout()
-        pos0  = ('position', 0)
-        norm0 = ('normal', 0)
-        tex0  = ('texcoord', 0)
-        vl.add(VertexComponent(pos0, 3))
-        vl.add(VertexComponent(norm0, 3))
-        vl.add(VertexComponent(tex0, 2))
-
+        vl = self._buildVertexLayout()
         mesh = cube.generateMesh(vl, Vector(2.0, 2.0, 2.0))
         self.assertEqual(mesh.getNumVertices(), 24)
         self.assertEqual(mesh.getNumTriangles(), 12)
@@ -235,14 +234,8 @@ class TestMesh(unittest.TestCase) :
         stlascii.write(mesh, 'data/cube_ascii.stl')
 
     def test_CylinderGenerator(self) :
-        vl = VertexLayout()
-        pos0 = ('position', 0)
-        norm0 = ('normal', 0)
-        tex0 = ('texcoord', 0)
-        vl.add(VertexComponent(pos0, 3))
-        vl.add(VertexComponent(norm0, 3))
-        vl.add(VertexComponent(tex0, 2))
 
+        vl = self._buildVertexLayout()
         mesh = cylinder.generateMesh(vl, 1.0, 1.0, 4.0, 36, 1)
         mesh = computeTriangleNormals.do(mesh)
         stlascii.write(mesh, 'data/cylinder_ascii.stl')
@@ -252,30 +245,41 @@ class TestMesh(unittest.TestCase) :
         stlascii.write(mesh, 'data/complex_cylinder_ascii.stl')
 
     def test_SphereGenerator(self) :
-        vl = VertexLayout()
-        pos0 = ('position', 0)
-        norm0 = ('normal', 0)
-        tex0 = ('texcoord', 0)
-        vl.add(VertexComponent(pos0, 3))
-        vl.add(VertexComponent(norm0, 3))
-        vl.add(VertexComponent(tex0, 2))
 
+        vl = self._buildVertexLayout()
         mesh = sphere.generateMesh(vl, 2.0, 38, 18)
         mesh = computeTriangleNormals.do(mesh)
         stlascii.write(mesh, 'data/sphere_ascii.stl')
 
     def test_TorusGenerator(self) :
-        vl = VertexLayout()
-        pos0 = ('position', 0)
-        norm0 = ('normal', 0)
-        tex0 = ('texcoord', 0)
-        vl.add(VertexComponent(pos0, 3))
-        vl.add(VertexComponent(norm0, 3))
-        vl.add(VertexComponent(tex0, 2))
 
+        vl = self._buildVertexLayout()
         mesh = torus.generateMesh(vl, 1.0, 3.0, 18, 36)
         mesh = computeTriangleNormals.do(mesh)
         stlascii.write(mesh, 'data/torus_ascii.stl')
+
+    def test_Deflate(self) :
+
+        # generate a cube
+        vl = self._buildVertexLayout()
+        mesh = cube.generateMesh(vl, Vector(2.0, 2.0, 2.0))
+        mesh = computeTriangleNormals.do(mesh)
+
+        # reduce to only positions
+        reducedVl = VertexLayout()
+        reducedVl.add(VertexComponent(pos0, 3))
+        fixedMesh = fixVertexComponents.do(mesh, reducedVl)
+        self.assertTrue(fixedMesh.vertexLayout.contains(pos0))
+        self.assertFalse(fixedMesh.vertexLayout.contains(norm0))
+        self.assertFalse(fixedMesh.vertexLayout.contains(tex0))
+
+        # remove duplicate vertices
+        reducedMesh, indexMap = deflate.do(fixedMesh)
+
+        self.assertEqual(len(indexMap), 24)
+        self.assertEqual(reducedMesh.getNumVertices(), 8)
+
+        stlascii.write(reducedMesh, 'data/cube_reduced_ascii.stl')
 
 if __name__ == '__main__':
     unittest.main()
