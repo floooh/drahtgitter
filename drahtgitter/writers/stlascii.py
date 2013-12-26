@@ -4,7 +4,7 @@
 from ..core import *
 
 #-------------------------------------------------------------------------------
-def write(mesh, path) :
+def writeMesh(mesh, path) :
 
     f = open(path, 'w')
 
