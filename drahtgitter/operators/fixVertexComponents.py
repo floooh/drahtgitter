@@ -18,7 +18,7 @@ def do(srcMesh, dstVertexLayout) :
             for i in range(0, dstComp.size) :
                 if i < srcComp.size :
                     # a copy mapping
-                    mapping.append(dstComp.offset + i)
+                    mapping.append(srcComp.offset + i)
                 else :
                     # missing vertex component element, fill with -1
                     mapping.append(-1)
