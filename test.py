@@ -12,8 +12,8 @@ import drahtgitter.generators.torus as torus
 import drahtgitter.operators.computeTriangleNormals as computeTriangleNormals
 import drahtgitter.operators.fixVertexComponents as fixVertexComponents
 import drahtgitter.operators.deflate as deflate
-import drahtgitter.writers.stlascii as stlascii
-import drahtgitter.writers.threejs as threejs
+import drahtgitter.writers.stlasciiwriter as stlasciiwriter
+import drahtgitter.writers.threejswriter as threejswriter
 
 class TestMath(unittest.TestCase) :
 
@@ -232,37 +232,37 @@ class TestMesh(unittest.TestCase) :
         self.assertEqual(mesh.triangles[8].normal, mesh.getVertex(16, norm0))
         self.assertEqual(mesh.triangles[10].normal, mesh.getVertex(20, norm0))
 
-        stlascii.writeMesh(mesh, 'data/cube_ascii.stl')
-        threejs.writeMesh(mesh, 'data/cube_threejs.json', 50.0)
+        stlasciiwriter.writeMesh(mesh, 'data/cube_ascii.stl')
+        threejswriter.writeMesh(mesh, 'data/cube_threejs.json', 50.0)
 
     def test_CylinderGenerator(self) :
 
         vl = self._buildVertexLayout()
         mesh = cylinder.generateMesh(vl, 1.0, 1.0, 4.0, 36, 1)
         mesh = computeTriangleNormals.do(mesh)
-        stlascii.writeMesh(mesh, 'data/cylinder_ascii.stl')
-        threejs.writeMesh(mesh, 'data/cylinder_threejs.json', 50.0)
+        stlasciiwriter.writeMesh(mesh, 'data/cylinder_ascii.stl')
+        threejswriter.writeMesh(mesh, 'data/cylinder_threejs.json', 50.0)
 
         mesh = cylinder.generateMesh(vl, 2.0, 0.5, 4.0, 18, 4)
         mesg = computeTriangleNormals.do(mesh)
-        stlascii.writeMesh(mesh, 'data/complex_cylinder_ascii.stl')
-        threejs.writeMesh(mesh, 'data/complex_cylinder_threejs.json', 50.0)
+        stlasciiwriter.writeMesh(mesh, 'data/complex_cylinder_ascii.stl')
+        threejswriter.writeMesh(mesh, 'data/complex_cylinder_threejs.json', 50.0)
 
     def test_SphereGenerator(self) :
 
         vl = self._buildVertexLayout()
         mesh = sphere.generateMesh(vl, 2.0, 38, 18)
         mesh = computeTriangleNormals.do(mesh)
-        stlascii.writeMesh(mesh, 'data/sphere_ascii.stl')
-        threejs.writeMesh(mesh, 'data/sphere_threejs.json', 50.0)
+        stlasciiwriter.writeMesh(mesh, 'data/sphere_ascii.stl')
+        threejswriter.writeMesh(mesh, 'data/sphere_threejs.json', 50.0)
 
     def test_TorusGenerator(self) :
 
         vl = self._buildVertexLayout()
         mesh = torus.generateMesh(vl, 1.0, 3.0, 18, 36)
         mesh = computeTriangleNormals.do(mesh)
-        stlascii.writeMesh(mesh, 'data/torus_ascii.stl')
-        threejs.writeMesh(mesh, 'data/torus_threejs.json', 100.0)
+        stlasciiwriter.writeMesh(mesh, 'data/torus_ascii.stl')
+        threejswriter.writeMesh(mesh, 'data/torus_threejs.json', 100.0)
 
     def test_Deflate(self) :
 
@@ -285,8 +285,8 @@ class TestMesh(unittest.TestCase) :
         self.assertEqual(len(indexMap), 24)
         self.assertEqual(reducedMesh.getNumVertices(), 8)
 
-        stlascii.writeMesh(reducedMesh, 'data/cube_reduced_ascii.stl')
-        threejs.writeMesh(reducedMesh, 'data/cube_reduced_threejs.json', 50.0)
+        stlasciiwriter.writeMesh(reducedMesh, 'data/cube_reduced_ascii.stl')
+        threejswriter.writeMesh(reducedMesh, 'data/cube_reduced_threejs.json', 50.0)
 
 if __name__ == '__main__':
     unittest.main()

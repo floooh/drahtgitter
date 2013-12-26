@@ -1,2 +1,2 @@
 # __init__.py
-__all__ = ['stlascii', 'threejs']
+__all__ = ['stlasciiwriter', 'threejswriter']

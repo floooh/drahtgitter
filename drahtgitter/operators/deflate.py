@@ -8,6 +8,8 @@ from ..core import *
 #-------------------------------------------------------------------------------
 def do(srcMesh) :
 
+    print 'Deflate before: numVertices {}'.format(srcMesh.getNumVertices())
+
     # create a sorted key map
     keyMap = VertexKeyMap(srcMesh)
     keyMap.sort()
@@ -45,6 +47,8 @@ def do(srcMesh) :
         i1 = outIndexMap[tri.vertexIndices[1]]
         i2 = outIndexMap[tri.vertexIndices[2]]
         tri.vertexIndices = (i0, i1, i2)
+
+    print 'Deflate after: numVertices {}'.format(dstMesh.getNumVertices())
 
     return dstMesh, outIndexMap
 
