@@ -330,5 +330,32 @@ class VertexKeyMap :
         '''
         self.keys = sorted(self.keys)
 
+#-------------------------------------------------------------------------------
+class MaterialParam :
+    '''
+    A material parameter (a key, a type and a value).
+    '''
+
+#-------------------------------------------------------------------------------
+class Material :
+    '''
+    Describes a material of a 3D model, basically just a collection
+    of MaterialParam objects.
+    '''
+
+#-------------------------------------------------------------------------------
+class Model :
+    '''
+    Top-level object which holds all elements required for a 3D object:
+        1..N Mesh objects
+        1..N Material objects
+        1..N Bone objects
+        a hierarchy of Node objects with references into Mesh, Material, Bone array
+
+    TODO: animation support, probably specific character stuff
+    '''
+
+
+
 #--- eof
 

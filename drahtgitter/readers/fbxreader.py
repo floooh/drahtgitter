@@ -20,9 +20,11 @@ def buildVertexLayout(fbxScene) :
         node = fbxScene.GetNode(nodeIndex)
         # for each attr node
         for attrIndex in range(0, node.GetNodeAttributeCount()) :
-            fbxMesh = node.GetNodeAttributeByIndex(attrIndex)
+            nodeAttr = node.GetNodeAttributeByIndex(attrIndex)
             # if current attr node is a mesh...
-            if fbxMesh.ClassId == fbx.FbxMesh.ClassId :
+            if nodeAttr.GetAttributeType() == fbx.FbxNodeAttribute.eMesh :
+                fbxMesh = nodeAttr
+
                 # for each layer in mesh...
                 normalCount   = 0
                 tangentCount  = 0
@@ -76,9 +78,10 @@ def countTriangles(fbxScene) :
         node = fbxScene.GetNode(nodeIndex)
         # for each attr node
         for attrIndex in range(0, node.GetNodeAttributeCount()) :
-            fbxMesh = node.GetNodeAttributeByIndex(attrIndex)
+            nodeAttr = node.GetNodeAttributeByIndex(attrIndex)
             # if current attr node is a mesh...
-            if fbxMesh.ClassId == fbx.FbxMesh.ClassId :
+            if nodeAttr.GetAttributeType() == fbx.FbxNodeAttribute.eMesh:
+                fbxMesh = nodeAttr
                 numTriangles += fbxMesh.GetPolygonCount()
 
     return numTriangles
@@ -87,14 +90,14 @@ def countTriangles(fbxScene) :
 def extractLayerElement(fbxMesh, fbxLayer, polyIndex, pointIndex, controlPointIndex) :
     '''
     Extracts a layer element (normal, uv, ...) and returns the
-    element as Vector
+    element as FbxVector4
     '''
     vertexIndex = polyIndex * 3 + pointIndex
     mapMode = fbxLayer.GetMappingMode()
     refMode = fbxLayer.GetReferenceMode()
     if mapMode == fbx.FbxLayerElement.eByControlPoint :
         if refMode == fbx.FbxLayerElement.eDirect :
-            fbxVec = fbx.fbxLayer.GetDirectArray().GetAt(controlPointIndex)
+            fbxVec = fbxLayer.GetDirectArray().GetAt(controlPointIndex)
         elif refMode == fbx.FbxLayerElement.eIndexToDirect :
             id = fbxLayer.GetIndexArray().GetAt(controlPointIndex)
             fbxVec = fbxLayer.GetDirectArray().GetAt(id)
@@ -112,11 +115,10 @@ def extractLayerElement(fbxMesh, fbxLayer, polyIndex, pointIndex, controlPointIn
         raise Exception('Mapping mode is eNone')
 
     if isinstance(fbxVec, fbx.FbxVector2) : 
-        vec = Vector(fbxVec[0], fbxVec[1])
+        return fbx.FbxVector4(fbxVec[0], fbxVec[1], 0.0, 0.0)
     else :
-        vec = Vector(fbxVec[0], fbxVec[1], fbxVec[2], fbxVec[3])
-    return vec
-
+        return fbxVec
+ 
 #-------------------------------------------------------------------------------
 def extractGeometry(mesh, fbxNode, fbxMesh, curTriIndex) :
     '''
@@ -125,6 +127,12 @@ def extractGeometry(mesh, fbxNode, fbxMesh, curTriIndex) :
     It is assumed that the FBX mesh has been triangulated!
     '''
     print 'extractGeomtry curTriIndex = {}'.format(curTriIndex)
+
+    # get the current node's global transform
+    affineMatrix = fbxNode.EvaluateGlobalTransform()
+    pointTransform = fbx.FbxMatrix(affineMatrix)
+    affineMatrix.SetT(fbx.FbxVector4(0.0, 0.0, 0.0, 0.0))
+    normalTransform = fbx.FbxMatrix(affineMatrix)
 
     # extract positions; for each polygon:
     pos0 = ('position', 0)
@@ -138,6 +146,7 @@ def extractGeometry(mesh, fbxNode, fbxMesh, curTriIndex) :
         for pointIndex in range(0, numPoints) :
             posIndex = fbxMesh.GetPolygonVertex(polyIndex, pointIndex)
             fbxPos = fbxMesh.GetControlPointAt(posIndex)
+            fbxPos = pointTransform.MultNormalize(fbxPos)
             pos = Vector(fbxPos[0], fbxPos[1], fbxPos[2])
             vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
             mesh.setVertex(vertexIndex, pos0, pos)
@@ -160,9 +169,14 @@ def extractGeometry(mesh, fbxNode, fbxMesh, curTriIndex) :
             for polyIndex in range(0, fbxMesh.GetPolygonCount()) :
                 for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
                     cpIndex = fbxMesh.GetPolygonVertex(polyIndex, pointIndex)
-                    norm = extractLayerElement(fbxMesh, lNormals, polyIndex, pointIndex, cpIndex)
+                    fbxNorm = extractLayerElement(fbxMesh, lNormals, polyIndex, pointIndex, cpIndex)
+                    fbxNorm = normalTransform.MultNormalize(fbxNorm)
+                    # NOTE: only xyz is considered in Normalize, see FBX docs
+                    fbxNorm.Normalize()
+                    # print 'NORM: {} {} {} {}'.format(fbxNorm[0], fbxNorm[1], fbxNorm[2], fbxNorm[3])
+
                     vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
-                    mesh.setVertex(vertexIndex, normalComponent, norm)
+                    mesh.setVertex(vertexIndex, normalComponent, Vector(fbxNorm[0], fbxNorm[1], fbxNorm[2]))
 
         # extract UVs
         lUVs = fbxMesh.GetLayer(layerIndex).GetUVs()
@@ -172,9 +186,9 @@ def extractGeometry(mesh, fbxNode, fbxMesh, curTriIndex) :
             for polyIndex in range(0, fbxMesh.GetPolygonCount()) :
                 for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
                     cpIndex = fbxMesh.GetPolygonVertex(polyIndex, pointIndex)
-                    uv = extractLayerElement(fbxMesh, lUVs, polyIndex, pointIndex, cpIndex)
+                    fbxUV = extractLayerElement(fbxMesh, lUVs, polyIndex, pointIndex, cpIndex)
                     vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
-                    mesh.setVertex(vertexIndex, uvComponent, uv)
+                    mesh.setVertex(vertexIndex, uvComponent, Vector(fbxUV[0], fbxUV[1]))
 
 
 #-------------------------------------------------------------------------------
@@ -216,12 +230,12 @@ def readMesh(path) :
         print 'node type: {}, name: {}'.format(fbxNode.ClassId.GetName(), fbxNode.GetName())
         # iterate over node attributes
         for attrIndex in range(0, fbxNode.GetNodeAttributeCount()) :
-            attr = fbxNode.GetNodeAttributeByIndex(attrIndex)
-            print '    attr type: {}, name: {}'.format(attr.ClassId.GetName(), attr.GetName())
+            nodeAttr = fbxNode.GetNodeAttributeByIndex(attrIndex)
+            print '    attr type: {}, name: {}'.format(nodeAttr.ClassId.GetName(), nodeAttr.GetName())
 
             # if current node attribute is a mesh, extract the geometry
-            if attr.ClassId == fbx.FbxMesh.ClassId :
-                fbxMesh = attr
+            if nodeAttr.GetAttributeType() == fbx.FbxNodeAttribute.eMesh:
+                fbxMesh = nodeAttr
                 extractGeometry(outMesh, fbxNode, fbxMesh, curTriIndex)
                 curTriIndex += fbxMesh.GetPolygonCount()
 
