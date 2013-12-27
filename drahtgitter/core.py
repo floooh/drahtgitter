@@ -87,12 +87,17 @@ class Triangle :
     '''
     A triangle in a Mesh object
     '''
-    def __init__(self, vertexIndices=(0,0,0), matIndex=0) :
-        if len(vertexIndices) != 3 :
-            raise Exception('Invalid number of vertexIndices, must be 3')
-        self.vertexIndices = vertexIndices
-        self.materialIndex = matIndex
-        self.normal = Vector(0.0, 0.0, 0.0)
+    def __init__(self, vi0=0, vi1=0, vi2=0, groupIndex=0) :
+        self.vertexIndex0 = vi0
+        self.vertexIndex1 = vi1
+        self.vertexIndex2 = vi2
+        self.groupIndex = groupIndex
+        self.normalX = 0.0
+        self.normalY = 0.0
+        self.normalZ = 0.0
+
+    def getNormal(self) :
+        return Vector(self.normalX, self.normalY, self.normalZ)
 
 #-------------------------------------------------------------------------------
 class VertexComponent :
@@ -187,20 +192,20 @@ class Mesh :
         '''
         self.vertexBuffer = array('f', [0.0] * numVertices * layout.size())
         self.vertexLayout = layout
-        self.triangles    = [Triangle() for _ in range(0, numTriangles)]
+        self.triangles    = [Triangle() for _ in xrange(0, numTriangles)]
 
     def addVertices(self, num) :
         '''
         Make room for n vertices
         '''
-        for i in range(0, num * self.vertexLayout.size()) :
+        for i in xrange(0, num * self.vertexLayout.size()) :
             self.vertexBuffer.append(0.0)
 
     def addTriangles(self, num) :
         '''
         Make room for n triangles
         '''
-        for i in range(0, num) :
+        for i in xrange(0, num) :
             self.triangles.append(Triangle())
 
     def setTriangle(self, triangleIndex, triangle) :
@@ -275,31 +280,46 @@ class Mesh :
 class VertexKey :
     ''' 
     A key class for sorting vertices.
-    '''
-    def __init__(self, mesh, index) :
-        self.index = index
-        self.mesh  = mesh;
+    ''' 
+    def __init__(self, index, vertexLayoutSize) :
+        self.vertexIndex = index
+        self.bufferIndex = index * vertexLayoutSize
+
+    @staticmethod
+    def init(mesh) :
+        ''' 
+        this must be called before sorting to setup a few
+        static variables used in the cmp method
+        '''
+        VertexKey.vertexBuffer = mesh.vertexBuffer
+        VertexKey.layoutSize   = mesh.vertexLayout.size()
 
     def cmp(self, other) :
-
-        selfSize = self.mesh.vertexLayout.size()
-        otherSize = other.mesh.vertexLayout.size()
-        if selfSize != otherSize :
-            raise Exception('comparison meshes must be identical')
-        selfIndex = self.index * selfSize
-        otherIndex = other.index * otherSize
-        for i in range(0, selfSize) :
-            selfValue  = self.mesh.vertexBuffer[selfIndex + i]
-            otherValue = other.mesh.vertexBuffer[otherIndex + i]
+        i = 0
+        while i < VertexKey.layoutSize:
+            selfValue  = VertexKey.vertexBuffer[self.bufferIndex + i]
+            otherValue = VertexKey.vertexBuffer[other.bufferIndex + i]
             if selfValue < otherValue :
                 return -1
             elif selfValue > otherValue :
                 return 1
+            i += 1
         # fallthrough: vertices are identical
         return 0
 
     def __lt__(self, other) :
-        return self.cmp(other) < 0
+        # inlined for performance (only __lt__ is called as sort hook)
+        i = 0
+        while i < VertexKey.layoutSize:
+            selfValue  = VertexKey.vertexBuffer[self.bufferIndex + i]
+            otherValue = VertexKey.vertexBuffer[other.bufferIndex + i]
+            if selfValue < otherValue :
+                return True
+            elif selfValue > otherValue :
+                return False
+            i += 1
+        # fallthrough: vertices are identical
+        return False
     def __gt__(self, other) :
         return self.cmp(other) > 0
     def __eq__(self, other) :
@@ -309,7 +329,16 @@ class VertexKey :
     def __ge__(self, other) :
         return self.cmp(other) >= 0
     def __ne__(self, other) :
-        return self.cmp(other) != 0
+        # inlined for performance
+        i = 0
+        while i < VertexKey.layoutSize:
+            selfValue  = VertexKey.vertexBuffer[self.bufferIndex + i]
+            otherValue = VertexKey.vertexBuffer[other.bufferIndex + i]
+            if selfValue != otherValue :
+                return True
+            i += 1
+        # fallthrough: vertices are identical
+        return False
 
 #-------------------------------------------------------------------------------
 class VertexKeyMap :
@@ -317,18 +346,19 @@ class VertexKeyMap :
     Holds a mesh reference and a list of (usually sorted) VertexKeys. Mainly
     used to find and remove duplicate vertices from a mesh
     '''
-    def __init__(self, mesh=None) :
+    def __init__(self, mesh) :
         self.mesh = mesh
-        if mesh != None :
-            self.keys = [VertexKey(mesh, i) for i in range(0, mesh.getNumVertices())]
-        else :
-            self.keys = None
+        vertexLayoutSize = mesh.vertexLayout.size()
+        self.keys = [VertexKey(i, vertexLayoutSize) for i in xrange(0, mesh.getNumVertices())]
 
     def sort(self) :
         '''
         Sort the contained vertex key
         '''
-        self.keys = sorted(self.keys)
+        if len(self.keys) > 1 and self.keys[1].bufferIndex != self.mesh.vertexLayout.size() :
+            raise Exception('Vertex layout size has changed!')
+        VertexKey.init(self.mesh)
+        self.keys.sort()
 
 #-------------------------------------------------------------------------------
 class MaterialParam :

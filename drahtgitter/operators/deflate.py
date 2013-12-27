@@ -4,6 +4,7 @@ also returns a integer array which maps vertices in the
 source mesh to vertices in the returned mesh
 '''
 from ..core import *
+import time
 
 #-------------------------------------------------------------------------------
 def do(srcMesh) :
@@ -11,30 +12,33 @@ def do(srcMesh) :
     print 'Deflate before: numVertices {}'.format(srcMesh.getNumVertices())
 
     # create a sorted key map
+    startTime = time.time()
     keyMap = VertexKeyMap(srcMesh)
     keyMap.sort()
-    outIndexMap = [-1] * len(keyMap.keys)
+    print 'Sorting: {}'.format(time.time() - startTime)
+    startTime = time.time()
 
     # create a new vertex buffer with duplicates removed
+    startTime = time.time()
+    outIndexMap = [-1] * len(keyMap.keys)
     vertexSize = srcMesh.vertexLayout.size()
     dstVertexBuffer = array('f')
     lastUniqueIndex = -1
     curDstVertexIndex = 0
-    for vertexIndex in range(0, len(keyMap.keys)):
+    for vertexIndex in xrange(0, len(keyMap.keys)):
         # copy unique vertices and skip duplicate vertices
         if lastUniqueIndex == -1 or keyMap.keys[vertexIndex] != keyMap.keys[lastUniqueIndex] :
             # new vertex encountered
             lastUniqueIndex = vertexIndex
             # copy the vertex data
             for valueIndex in range(0, vertexSize) :
-                dstVertexBuffer.append(srcMesh.vertexBuffer[keyMap.keys[vertexIndex].index * vertexSize + valueIndex])
+                dstVertexBuffer.append(srcMesh.vertexBuffer[keyMap.keys[vertexIndex].bufferIndex + valueIndex])
             curDstVertexIndex += 1            
 
         # map original vertex index to new vertex index
-        outIndexMap[keyMap.keys[vertexIndex].index] = curDstVertexIndex - 1
+        outIndexMap[keyMap.keys[vertexIndex].vertexIndex] = curDstVertexIndex - 1
 
-    if -1 in outIndexMap :
-        raise Exception('Empty slot in outIndexMap, should not happen!')
+    print 'Remove dups: {}'.format(time.time() - startTime)
 
     # create a new mesh
     dstMesh = Mesh(copy.deepcopy(srcMesh.vertexLayout))
@@ -43,10 +47,9 @@ def do(srcMesh) :
     # create a new triangle array for the dst mesh with mapped vertex indices
     dstMesh.triangles = copy.deepcopy(srcMesh.triangles)
     for tri in dstMesh.triangles :
-        i0 = outIndexMap[tri.vertexIndices[0]]
-        i1 = outIndexMap[tri.vertexIndices[1]]
-        i2 = outIndexMap[tri.vertexIndices[2]]
-        tri.vertexIndices = (i0, i1, i2)
+        tri.vertexIndex0 = outIndexMap[tri.vertexIndex0]
+        tri.vertexIndex1 = outIndexMap[tri.vertexIndex1]
+        tri.vertexIndex2 = outIndexMap[tri.vertexIndex2]
 
     print 'Deflate after: numVertices {}'.format(dstMesh.getNumVertices())
 

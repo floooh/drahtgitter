@@ -52,25 +52,25 @@ def generateMesh(vertexLayout, innerRadius, outerRadius, numSides, numRings) :
     triIndex = 0
     for i in range(0, numRings - 1) :
         for j in range(0, numSides - 1) :
-            mesh.setTriangle(triIndex, Triangle((i*numSides+j, i*numSides+j+1, (i+1)*numSides+j), 0))
+            mesh.setTriangle(triIndex, Triangle(i*numSides+j, i*numSides+j+1, (i+1)*numSides+j, 0))
             triIndex += 1
-            mesh.setTriangle(triIndex, Triangle(((i+1)*numSides+j, i*numSides+j+1, (i+1)*numSides+j+1), 0))
+            mesh.setTriangle(triIndex, Triangle((i+1)*numSides+j, i*numSides+j+1, (i+1)*numSides+j+1, 0))
             triIndex += 1
         j += 1
-        mesh.setTriangle(triIndex, Triangle((i*numSides+j, i*numSides, (i+1)*numSides+j), 0))
+        mesh.setTriangle(triIndex, Triangle(i*numSides+j, i*numSides, (i+1)*numSides+j, 0))
         triIndex += 1
-        mesh.setTriangle(triIndex, Triangle(((i+1)*numSides+j, i*numSides, (i+1)*numSides), 0))
+        mesh.setTriangle(triIndex, Triangle((i+1)*numSides+j, i*numSides, (i+1)*numSides, 0))
         triIndex += 1
     i += 1
     for j in range(0, numSides - 1) :
-        mesh.setTriangle(triIndex, Triangle((i*numSides+j, i*numSides+j+1, j), 0))
+        mesh.setTriangle(triIndex, Triangle(i*numSides+j, i*numSides+j+1, j, 0))
         triIndex += 1
-        mesh.setTriangle(triIndex, Triangle((j, i*numSides+j+1, j+1), 0))
+        mesh.setTriangle(triIndex, Triangle(j, i*numSides+j+1, j+1, 0))
         triIndex += 1
     j += 1
-    mesh.setTriangle(triIndex, Triangle((i*numSides+j, i*numSides, j), 0))
+    mesh.setTriangle(triIndex, Triangle(i*numSides+j, i*numSides, j, 0))
     triIndex += 1
-    mesh.setTriangle(triIndex, Triangle((j, i*numSides, 0), 0))
+    mesh.setTriangle(triIndex, Triangle(j, i*numSides, 0, 0))
     triIndex += 1
 
     if triIndex != mesh.getNumTriangles() :

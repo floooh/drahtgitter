@@ -42,8 +42,8 @@ def generateMesh(vertexLayout, size=Vector(1.0, 1.0, 1.0), origin=Vector(0.0, 0.
 
         triIndex = i * 2
         triVertIndex = i * 4
-        mesh.setTriangle(triIndex, Triangle((triVertIndex, triVertIndex+1, triVertIndex+2), 0))
-        mesh.setTriangle(triIndex + 1, Triangle((triVertIndex+2, triVertIndex+3, triVertIndex), 0))
+        mesh.setTriangle(triIndex, Triangle(triVertIndex, triVertIndex+1, triVertIndex+2, 0))
+        mesh.setTriangle(triIndex + 1, Triangle(triVertIndex+2, triVertIndex+3, triVertIndex, 0))
 
     return mesh
 

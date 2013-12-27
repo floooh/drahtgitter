@@ -82,10 +82,10 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
     rowA = 0
     rowB = 1
     for i in range(0, numSlices-1) :
-        mesh.setTriangle(triIndex, Triangle((rowA, rowB+i, rowB+i+1), 0))
+        mesh.setTriangle(triIndex, Triangle(rowA, rowB+i, rowB+i+1, 0))
         triIndex += 1
     i += 1
-    mesh.setTriangle(triIndex, Triangle((rowA, rowB+i, rowB), 0))
+    mesh.setTriangle(triIndex, Triangle(rowA, rowB+i, rowB, 0))
     triIndex += 1
 
     # stack triangles
@@ -93,24 +93,24 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
         rowA = 1 + (j + 1) * numSlices
         rowB = rowA + numSlices
         for i in range(0, numSlices-1) :
-            mesh.setTriangle(triIndex, Triangle((rowA+i, rowB+i, rowA+i+1), 0))
+            mesh.setTriangle(triIndex, Triangle(rowA+i, rowB+i, rowA+i+1, 0))
             triIndex += 1
-            mesh.setTriangle(triIndex, Triangle((rowA+i+1, rowB+i, rowB+i+1), 0))
+            mesh.setTriangle(triIndex, Triangle(rowA+i+1, rowB+i, rowB+i+1, 0))
             triIndex += 1
         i += 1
-        mesh.setTriangle(triIndex, Triangle((rowA+i, rowB+i, rowA), 0))
+        mesh.setTriangle(triIndex, Triangle(rowA+i, rowB+i, rowA, 0))
         triIndex += 1
-        mesh.setTriangle(triIndex, Triangle((rowA, rowB+i, rowB), 0))
+        mesh.setTriangle(triIndex, Triangle(rowA, rowB+i, rowB, 0))
         triIndex += 1
 
     # top cap triangles
     rowA = 1 + (numStacks + 2) * numSlices
     rowB = rowA + numSlices
     for i in range(0, numSlices - 1) :
-        mesh.setTriangle(triIndex, Triangle((rowA+i, rowB, rowA+i+1), 0))
+        mesh.setTriangle(triIndex, Triangle(rowA+i, rowB, rowA+i+1, 0))
         triIndex += 1
     i += 1
-    mesh.setTriangle(triIndex, Triangle((rowA+i, rowB, rowA), 0))
+    mesh.setTriangle(triIndex, Triangle(rowA+i, rowB, rowA, 0))
     triIndex += 1
     if triIndex != mesh.getNumTriangles() :
         raise Exception("Triangle count mismatch")

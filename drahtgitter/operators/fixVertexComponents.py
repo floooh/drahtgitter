@@ -33,7 +33,7 @@ def do(srcMesh, dstVertexLayout) :
     numVertices  = srcMesh.getNumVertices()
     numTriangles = srcMesh.getNumTriangles()
     dstMesh = Mesh(dstVertexLayout, numVertices, numTriangles)
-    for vertexIndex in range(0, numVertices) :
+    for vertexIndex in xrange(0, numVertices) :
         for mapIndex in range(0, len(mapping)) :
             dstIndex = vertexIndex * dstVertexLayout.size() + mapIndex
             if mapping[mapIndex] >= 0 :

@@ -129,19 +129,19 @@ def writeMesh(mesh, path, geomScale = 1.0) :
         f.write('{}'.format(faceMask))
         # 3 position vertex indices
         tri = posMesh.triangles[faceIndex]
-        f.write(',{},{},{}'.format(tri.vertexIndices[0], tri.vertexIndices[1], tri.vertexIndices[2]))
+        f.write(',{},{},{}'.format(tri.vertexIndex0, tri.vertexIndex1, tri.vertexIndex2))
         # write 2 uv indices
         if faceMask & uvBit :
             tri = uvMesh.triangles[faceIndex]
-            f.write(',{},{},{}'.format(tri.vertexIndices[0], tri.vertexIndices[1], tri.vertexIndices[2]))
+            f.write(',{},{},{}'.format(tri.vertexIndex0, tri.vertexIndex1, tri.vertexIndex2))
         # write 3 normal indices
         if faceMask & normalBit :
             tri = normMesh.triangles[faceIndex]
-            f.write(',{},{},{}'.format(tri.vertexIndices[0], tri.vertexIndices[1], tri.vertexIndices[2]))
+            f.write(',{},{},{}'.format(tri.vertexIndex0, tri.vertexIndex1, tri.vertexIndex2))
         # write 4 color indices
         if faceMask & colorBit :
             tri = normMesh.triangles[faceIndex]
-            f.write(',{},{},{}'.format(tri.vertexIndex[0], tri.vertexIndex[1], tri.vertexIndex[2], tri.vertexIndex[3]))
+            f.write(',{},{},{}'.format(tri.vertexIndex0, tri.vertexIndex1, tri.vertexIndex2))
         if faceIndex < numFaces - 1 :
             f.write(',')
     f.write(' ]\n')

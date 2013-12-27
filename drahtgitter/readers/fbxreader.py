@@ -7,6 +7,22 @@ from ..core import *
 import fbx as fbx
 
 #-------------------------------------------------------------------------------
+def loadScene(manager, path) :
+    '''
+    Load an FBX file into a FbxScene object
+    '''
+    importer = fbx.FbxImporter.Create(manager, 'importer')
+    status = importer.Initialize(path)
+    if status == False :
+        raise Exception('FbxImporter: failed to load scene!')
+
+    scene = fbx.FbxScene.Create(manager, 'scene')
+    importer.Import(scene)
+    importer.Destroy()
+
+    return scene
+
+#-------------------------------------------------------------------------------
 def buildVertexLayout(fbxScene) :
     '''
     Builds a vertex layout matching the information in the 
@@ -153,7 +169,7 @@ def extractGeometry(mesh, fbxNode, fbxMesh, curTriIndex) :
 
         # add a new triangles
         startIndex = (curTriIndex + polyIndex) * 3
-        mesh.setTriangle(curTriIndex + polyIndex, Triangle((startIndex, startIndex+1, startIndex+2), 0))
+        mesh.setTriangle(curTriIndex + polyIndex, Triangle(startIndex, startIndex+1, startIndex+2, 0))
 
     # extract additional vertex elements
     # FIXME: handle vertex color, tangent, binormals
@@ -199,19 +215,11 @@ def readMesh(path) :
     and only returns a single, flattened mesh.
     '''
 
-    print 'fbxreader: {}'.format(path)
+    print 'fbxreader.readMesh: {}'.format(path)
 
     # setup the FBX SDK and read the FBX file
     manager = fbx.FbxManager.Create()
-    importer = fbx.FbxImporter.Create(manager, 'importer')
-    status = importer.Initialize(path)
-    if status == False :
-        raise Exception('FbxImporter initialization failed!')
-
-    scene = fbx.FbxScene.Create(manager, 'scene')
-    importer.Import(scene)
-    importer.Destroy()
-
+    scene = loadScene(manager, path)
     conv = fbx.FbxGeometryConverter(manager)
 
     # make sure the scene is triangulated
@@ -239,4 +247,18 @@ def readMesh(path) :
                 extractGeometry(outMesh, fbxNode, fbxMesh, curTriIndex)
                 curTriIndex += fbxMesh.GetPolygonCount()
 
+    scene.Destroy()
+    manager.Destroy()
+
     return outMesh
+
+#-------------------------------------------------------------------------------
+def readModel(path) :
+    '''
+    Reads an FBX file with material information, but flattens node hierarchy.
+    FIXME: use a hint attribute to decide if a node must be preserved
+    '''
+
+    print 'fbxReader.readModel: {}'.format(path)
+
+

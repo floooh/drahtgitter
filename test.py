@@ -215,22 +215,19 @@ class TestMesh(unittest.TestCase) :
         mesh = computeTriangleNormals.do(mesh)
         
 
-        n0 = mesh.triangles[0].normal
-        n1 = mesh.triangles[1].normal
+        self.assertEqual(mesh.triangles[0].getNormal(), mesh.triangles[1].getNormal())
+        self.assertEqual(mesh.triangles[2].getNormal(), mesh.triangles[3].getNormal())
+        self.assertEqual(mesh.triangles[4].getNormal(), mesh.triangles[5].getNormal())
+        self.assertEqual(mesh.triangles[6].getNormal(), mesh.triangles[7].getNormal())
+        self.assertEqual(mesh.triangles[8].getNormal(), mesh.triangles[9].getNormal())
+        self.assertEqual(mesh.triangles[10].getNormal(), mesh.triangles[11].getNormal())
 
-        self.assertEqual(mesh.triangles[0].normal, mesh.triangles[1].normal)
-        self.assertEqual(mesh.triangles[2].normal, mesh.triangles[3].normal)
-        self.assertEqual(mesh.triangles[4].normal, mesh.triangles[5].normal)
-        self.assertEqual(mesh.triangles[6].normal, mesh.triangles[7].normal)
-        self.assertEqual(mesh.triangles[8].normal, mesh.triangles[9].normal)
-        self.assertEqual(mesh.triangles[10].normal, mesh.triangles[11].normal)
-
-        self.assertEqual(mesh.triangles[0].normal, mesh.getVertex(0, norm0))
-        self.assertEqual(mesh.triangles[2].normal, mesh.getVertex(4, norm0))
-        self.assertEqual(mesh.triangles[4].normal, mesh.getVertex(8, norm0))
-        self.assertEqual(mesh.triangles[6].normal, mesh.getVertex(12, norm0))
-        self.assertEqual(mesh.triangles[8].normal, mesh.getVertex(16, norm0))
-        self.assertEqual(mesh.triangles[10].normal, mesh.getVertex(20, norm0))
+        self.assertEqual(mesh.triangles[0].getNormal(), mesh.getVertex(0, norm0))
+        self.assertEqual(mesh.triangles[2].getNormal(), mesh.getVertex(4, norm0))
+        self.assertEqual(mesh.triangles[4].getNormal(), mesh.getVertex(8, norm0))
+        self.assertEqual(mesh.triangles[6].getNormal(), mesh.getVertex(12, norm0))
+        self.assertEqual(mesh.triangles[8].getNormal(), mesh.getVertex(16, norm0))
+        self.assertEqual(mesh.triangles[10].getNormal(), mesh.getVertex(20, norm0))
 
         stlasciiwriter.writeMesh(mesh, 'data/cube_ascii.stl')
         threejswriter.writeMesh(mesh, 'data/cube_threejs.json', 50.0)
