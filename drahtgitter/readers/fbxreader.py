@@ -152,7 +152,7 @@ def extractGeometry(mesh, fbxNode, fbxMesh, curTriIndex) :
 
     # extract positions; for each polygon:
     pos0 = ('position', 0)
-    for polyIndex in range(0, fbxMesh.GetPolygonCount()) :
+    for polyIndex in xrange(0, fbxMesh.GetPolygonCount()) :
         # for each point in polygon
         numPoints = fbxMesh.GetPolygonSize(polyIndex)
         if numPoints != 3 :
@@ -172,8 +172,11 @@ def extractGeometry(mesh, fbxNode, fbxMesh, curTriIndex) :
         mesh.setTriangle(curTriIndex + polyIndex, Triangle(startIndex, startIndex+1, startIndex+2, 0))
 
     # extract additional vertex elements
-    # FIXME: handle vertex color, tangent, binormals
+    # FIXME: handle vertex color
     normalLayerCount = 0
+    tangentLayerCount = 0
+    binormalLayerCount = 0
+    colorLayerCount = 0
     uvLayerCount = 0
     for layerIndex in range(0, fbxMesh.GetLayerCount()) :
 
@@ -182,22 +185,47 @@ def extractGeometry(mesh, fbxNode, fbxMesh, curTriIndex) :
         if lNormals :
             normalComponent = ('normal', normalLayerCount)
             normalLayerCount += 1
-            for polyIndex in range(0, fbxMesh.GetPolygonCount()) :
+            for polyIndex in xrange(0, fbxMesh.GetPolygonCount()) :
                 for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
                     cpIndex = fbxMesh.GetPolygonVertex(polyIndex, pointIndex)
                     fbxNorm = extractLayerElement(fbxMesh, lNormals, polyIndex, pointIndex, cpIndex)
                     fbxNorm = normalTransform.MultNormalize(fbxNorm)
-                    # NOTE: only xyz is considered in Normalize, see FBX docs
                     fbxNorm.Normalize()
-                    # print 'NORM: {} {} {} {}'.format(fbxNorm[0], fbxNorm[1], fbxNorm[2], fbxNorm[3])
-
                     vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
                     mesh.setVertex(vertexIndex, normalComponent, Vector(fbxNorm[0], fbxNorm[1], fbxNorm[2]))
+
+        # extract tangents
+        lTangents = fbxMesh.GetLayer(layerIndex).GetTangents()
+        if lTangents :
+            tangentComponent = ('tangent', tangentLayerCount)
+            tangentLayerCount += 1
+            for polyIndex in xrange(0, fbxMesh.GetPolygonCount()) :
+                for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
+                    cpIndex = fbxMesh.GetPolygonVertex(polyIndex, pointIndex)
+                    fbxTang = extractLayerElement(fbxMesh, lTangents, polyIndex, pointIndex, cpIndex)
+                    fbxTang = normalTransform.MultNormalize(fbxTang)
+                    fbxTang.Normalize()
+                    vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
+                    mesh.setVertex(vertexIndex, tangentComponent, Vector(fbxTang[0], fbxTang[1], fbxTang[2]))
+
+        # extract binormals
+        lBinormals = fbxMesh.GetLayer(layerIndex).GetBinormals()
+        if lBinormals :
+            binormalComponent = ('binormal', binormalLayerCount)
+            binormalLayerCount += 1
+            for polyIndex in xrange(0, fbxMesh.GetPolygonCount()) :
+                for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
+                    cpIndex = fbxMesh.GetPolygonVertex(polyIndex, pointIndex)
+                    fbxBinorm = extractLayerElement(fbxMesh, lBinormals, polyIndex, pointIndex, cpIndex)
+                    fbxBinorm = normalTransform.MultNormalize(fbxNorm)
+                    fbxNorm.Normalize()
+                    vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
+                    mesh.setVertex(vertexIndex, binormalComponent, Vector(fbxBinorm[0], fbxBinorm[1], fbxBinorm[2]))
 
         # extract UVs
         lUVs = fbxMesh.GetLayer(layerIndex).GetUVs()
         if lUVs :
-            uvComponent = ('uv', uvLayerCount)
+            uvComponent = ('texcoord', uvLayerCount)
             uvLayerCount += 1
             for polyIndex in range(0, fbxMesh.GetPolygonCount()) :
                 for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
@@ -206,6 +234,126 @@ def extractGeometry(mesh, fbxNode, fbxMesh, curTriIndex) :
                     vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
                     mesh.setVertex(vertexIndex, uvComponent, Vector(fbxUV[0], fbxUV[1]))
 
+        # extract vertex colors
+        lColors = fbxMesh.GetLayer(layerIndex).GetVertexColors()
+        if lColors :
+            colorComponent = ('color', colorLayerCount)
+            colorLayerCount += 1
+            for polyIndex in range(0, fbxMesh.GetPolygonCount()) :
+                for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
+                    cpIndex = fbxMesh.GetPolygonVertex(polyIndex, pointIndex)
+                    fbxColor = extractLayerElement(fbxMesh, lColors, polyIndex, pointIndex, cpIndex)
+                    vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
+                    mesh.setVertex(vertexIndex, colorComponent, Vector(fbxColor[0], fbxColor[1], fbxColor[2], fbxColor[3]))
+
+#-------------------------------------------------------------------------------
+def isHardwareShader(fbxMaterial) :
+    '''
+    Tests whether the provided material is a hardware shader
+    (HLSL or CGFX)
+    '''
+    impl = fbx.GetImplementation(fbxMaterial, 'ImplementationHLSL')
+    if not impl :
+        impl = fbx.GetImplementation(fbxMaterial, 'ImplementationCGFX')
+    return impl != None
+
+#-------------------------------------------------------------------------------
+def extractHardwareShaderParams(fbxMaterial) :
+    '''
+    Extract the shader parameters for a hardware
+    shader material
+    '''
+    impl = fbx.GetImplementation(fbxMaterial, 'ImplementationHLSL')
+    shdType = 'HLSL'
+    if not impl :
+        impl = fbx.GetImplementation(fbxMaterial, 'ImplementationCGFX')
+        shdType = 'CGFX'
+    if not impl :
+        raise Exception('Not a hardware shader!')
+
+    print 'Hardware Shader: {}'.format(fbxMaterial.GetName())
+    print 'Shader Type: {}'.format(shdType)
+
+    # parse the binding table
+    table = impl.GetRootTable()
+    for entryIndex in range(0, table.GetEntryCount()) :
+        entry = table.GetEntry(entryIndex)
+
+        print 'Entry Type: {}'.format(entry.GetType(True))
+        print 'Entry Source: {}'.format(entry.GetSource())
+
+        # FIXME: CONTINUE!
+
+#-------------------------------------------------------------------------------
+def isPhongShader(fbxMaterial) :
+    return fbxMaterial.GetClassId().Is(fbx.FbxSurfacePhong.ClassId)
+
+#-------------------------------------------------------------------------------
+def extractPhongShaderParams(fbxMaterial) :
+
+    print 'Phong Shader: {}'.format(fbxMaterial.GetName())
+
+    print 'Shading Model: {}'.format(fbxMaterial.ShadingModel.Get())
+    print 'Multilayer: {}'.format(fbxMaterial.MultiLayer.Get())
+    print 'Emissive: {} {} {} * {}'.format(fbxMaterial.Emissive.Get()[0], fbxMaterial.Emissive.Get()[1], fbxMaterial.Emissive.Get()[2], fbxMaterial.EmissiveFactor.Get())
+    print 'Ambient: {} {} {} * {}'.format(fbxMaterial.Ambient.Get()[0], fbxMaterial.Ambient.Get()[1], fbxMaterial.Ambient.Get()[2], fbxMaterial.AmbientFactor.Get())
+    print 'Diffuse: {} {} {} * {}'.format(fbxMaterial.Diffuse.Get()[0], fbxMaterial.Diffuse.Get()[1], fbxMaterial.Diffuse.Get()[2], fbxMaterial.DiffuseFactor.Get())
+    print 'Bump: {} {} {} * {}'.format(fbxMaterial.Bump.Get()[0], fbxMaterial.Bump.Get()[1], fbxMaterial.Bump.Get()[2], fbxMaterial.BumpFactor.Get())    
+    print 'NormalMap: {} {} {}'.format(fbxMaterial.NormalMap.Get()[0], fbxMaterial.NormalMap.Get()[1], fbxMaterial.NormalMap.Get()[2])
+    print 'TransparentColor: {} {} {} * {}'.format(fbxMaterial.TransparentColor.Get()[0], fbxMaterial.TransparentColor.Get()[1], fbxMaterial.TransparentColor.Get()[2], fbxMaterial.TransparencyFactor.Get())
+    print 'DisplacementColor: {} {} {} * {}'.format(fbxMaterial.DisplacementColor.Get()[0], fbxMaterial.DisplacementColor.Get()[1], fbxMaterial.DisplacementColor.Get()[2], fbxMaterial.DisplacementFactor.Get())
+    print 'VectorDisplacementColor: {} {} {} * {}'.format(fbxMaterial.VectorDisplacementColor.Get()[0], fbxMaterial.VectorDisplacementColor.Get()[1], fbxMaterial.VectorDisplacementColor.Get()[2], fbxMaterial.VectorDisplacementFactor.Get())
+    print 'Specular: {} {} {} * {}'.format(fbxMaterial.Specular.Get()[0], fbxMaterial.Specular.Get()[1], fbxMaterial.Specular.Get()[2], fbxMaterial.SpecularFactor.Get())
+    print 'Reflection: {} {} {} * {}'.format(fbxMaterial.Reflection.Get()[0], fbxMaterial.Reflection.Get()[1], fbxMaterial.Reflection.Get()[2], fbxMaterial.ReflectionFactor.Get())
+    print 'Shininess: {}'.format(fbxMaterial.Shininess.Get())
+
+#-------------------------------------------------------------------------------
+def isLambertShader(fbxMaterial) :
+    return fbxMaterial.GetClassId().Is(fbx.FbxSurfaceLambert.ClassId)
+
+#-------------------------------------------------------------------------------
+def extractLambertShaderParams(fbxMaterial) :
+    
+    print 'Lambert Shader: {}'.format(fbxMaterial.GetName())
+
+    print 'Shading Model: {}'.format(fbxMaterial.ShadingModel.Get())
+    print 'Multilayer: {}'.format(fbxMaterial.MultiLayer.Get())
+    print 'Emissive: {} {} {} * {}'.format(fbxMaterial.Emissive.Get()[0], fbxMaterial.Emissive.Get()[1], fbxMaterial.Emissive.Get()[2], fbxMaterial.EmissiveFactor.Get())
+    print 'Ambient: {} {} {} * {}'.format(fbxMaterial.Ambient.Get()[0], fbxMaterial.Ambient.Get()[1], fbxMaterial.Ambient.Get()[2], fbxMaterial.AmbientFactor.Get())
+    print 'Diffuse: {} {} {} * {}'.format(fbxMaterial.Diffuse.Get()[0], fbxMaterial.Diffuse.Get()[1], fbxMaterial.Diffuse.Get()[2], fbxMaterial.DiffuseFactor.Get())
+    print 'Bump: {} {} {} * {}'.format(fbxMaterial.Bump.Get()[0], fbxMaterial.Bump.Get()[1], fbxMaterial.Bump.Get()[2], fbxMaterial.BumpFactor.Get())    
+    print 'NormalMap: {} {} {}'.format(fbxMaterial.NormalMap.Get()[0], fbxMaterial.NormalMap.Get()[1], fbxMaterial.NormalMap.Get()[2])
+    print 'TransparentColor: {} {} {} * {}'.format(fbxMaterial.TransparentColor.Get()[0], fbxMaterial.TransparentColor.Get()[1], fbxMaterial.TransparentColor.Get()[2], fbxMaterial.TransparencyFactor.Get())
+    print 'DisplacementColor: {} {} {} * {}'.format(fbxMaterial.DisplacementColor.Get()[0], fbxMaterial.DisplacementColor.Get()[1], fbxMaterial.DisplacementColor.Get()[2], fbxMaterial.DisplacementFactor.Get())
+    print 'VectorDisplacementColor: {} {} {} * {}'.format(fbxMaterial.VectorDisplacementColor.Get()[0], fbxMaterial.VectorDisplacementColor.Get()[1], fbxMaterial.VectorDisplacementColor.Get()[2], fbxMaterial.VectorDisplacementFactor.Get())
+
+#-------------------------------------------------------------------------------
+def extractMaterials(fbxNode, fbxMesh) :
+    '''
+    see DisplayMaterial.py in FBX SDK importexport sample
+    '''
+    if fbxMesh.GetNode() != fbxNode :
+        raise Excpetion('FbxNode != fbxMesh (should not happen')
+    matCount = fbxNode.GetMaterialCount()
+
+    for layerIndex in range(0, fbxMesh.GetLayerCount()) :
+        lMaterials = fbxMesh.GetLayer(layerIndex).GetMaterials()
+        if lMaterials: 
+            if lMaterials.GetReferenceMode() == fbx.FbxLayerElement.eIndex :
+                raise Exception('Material Layer ref mode is eIndex')
+
+            for matIndex in range(0, matCount) :
+                fbxMaterial = fbxNode.GetMaterial(matIndex)
+
+                # check shader type and extract shader params
+                if isHardwareShader(fbxMaterial) :
+                    extractHardwareShaderParams(fbxMaterial)
+                elif isPhongShader(fbxMaterial) :
+                    extractPhongShaderParams(fbxMaterial)
+                elif isLambertShader(fbxMaterial) :
+                    extractLambertShaderParams(fbxMaterial)
+                else :
+                    raise Exception('Unknown material type')
 
 #-------------------------------------------------------------------------------
 def readMesh(path) :
@@ -261,4 +409,30 @@ def readModel(path) :
 
     print 'fbxReader.readModel: {}'.format(path)
 
+    # setup the FBX SDK and read the FBX file
+    manager = fbx.FbxManager.Create()
+    scene = loadScene(manager, path)
+    conv = fbx.FbxGeometryConverter(manager)
 
+    # make sure the scene is triangulated
+    if not conv.Triangulate(scene, True) :
+        raise Exception('Failed to triangulate FBX scene!')
+
+    # iterate over nodes
+    curTriIndex = 0
+    for nodeIndex in range(0, scene.GetNodeCount()) :
+        fbxNode = scene.GetNode(nodeIndex)
+        print 'node type: {}, name: {}'.format(fbxNode.ClassId.GetName(), fbxNode.GetName())
+        # iterate over node attributes
+        for attrIndex in range(0, fbxNode.GetNodeAttributeCount()) :
+            nodeAttr = fbxNode.GetNodeAttributeByIndex(attrIndex)
+            print '    attr type: {}, name: {}'.format(nodeAttr.ClassId.GetName(), nodeAttr.GetName())
+
+            # NOTE: THIS WILL ENCOUNTER THE SAME MATERIALS MANY TIMES...
+            # 
+            if nodeAttr.GetAttributeType() == fbx.FbxNodeAttribute.eMesh:
+                fbxMesh = nodeAttr
+                extractMaterials(fbxNode, fbxMesh)
+
+    scene.Destroy()
+    manager.Destroy()
