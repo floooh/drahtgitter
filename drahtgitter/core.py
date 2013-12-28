@@ -5,6 +5,7 @@ Defines the drahtgitter core classes like Mesh, Material, Bone, ...
 from array import array
 import math
 import copy
+import sys
 
 #-------------------------------------------------------------------------------
 class Vector :
@@ -275,6 +276,20 @@ class Mesh :
             if comp.size > 3 :
                 vec.w = self.vertexBuffer[vbOffset + 3]
         return vec
+
+    def dumpVertices(self, nameAndIndex):
+        '''
+        Debug-print vertices
+        '''
+        compOffset = self.vertexLayout.getComponent(nameAndIndex).offset
+        compSize   = self.vertexLayout.getComponent(nameAndIndex).size
+        vertexSize = self.vertexLayout.size()
+        for vertexIndex in xrange(0, self.getNumVertices()) :
+            sys.stdout.write('{} {}{}: '.format(vertexIndex, nameAndIndex[0], nameAndIndex[1]))
+            bufferIndex = vertexSize * vertexIndex + compOffset
+            for i in range(bufferIndex, bufferIndex + compSize) :
+                sys.stdout.write('{} '.format(self.vertexBuffer[i]))
+            sys.stdout.write('\n')
 
 #-------------------------------------------------------------------------------
 class VertexKey :
