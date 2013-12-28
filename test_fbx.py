@@ -11,15 +11,23 @@ import drahtgitter.writers.threejswriter as threejswriter
 
 class TestFBX(unittest.TestCase) :
 
-    def _convertFbx(self, name, scale) :
+    def _convertMeshFbx(self, name, scale) :
         mesh = fbxreader.readMesh('data/' + name + '.fbx')
         mesh, indexMap = deflate.do(mesh)
         stlasciiwriter.writeMesh(mesh, 'data/' + name + '_ascii.stl')
         threejswriter.writeMesh(mesh, 'data/' + name + '_threejs.json', scale)
 
-    def test_FbxReader(self) :
-        self._convertFbx('cubeman', 10.0)
-        self._convertFbx('teapot', 500.0)
+    def test_FbxMeshReader(self) :
+        #self._convertMeshFbx('cubeman', 10.0)
+        #self._convertMeshFbx('teapot', 500.0)
+        self._convertMeshFbx('radonlabs_tiger', 100.0)
+        self._convertMeshFbx('radonlabs_opelblitz', 100.0)
+
+    '''
+    def test_FbxModelReader(self) :
+        fbxreader.readModel('data/teapot.fbx')
+        fbxreader.readModel('data/cubeman.fbx')
+    '''
 
 if __name__ == '__main__':
     unittest.main()
