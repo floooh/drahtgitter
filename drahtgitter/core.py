@@ -376,10 +376,73 @@ class VertexKeyMap :
         self.keys.sort()
 
 #-------------------------------------------------------------------------------
-class MaterialParam :
+class MatParam :
     '''
     A material parameter (a key, a type and a value).
     '''
+
+    # param types
+    Float = 1
+    Float2 = 2
+    Float3 = 3
+    Float4 = 4
+    Int = 6
+    Bool = 7
+    String = 8
+    Texture = 9
+    Color = 10
+
+    def __init__(self, name, type, value) :
+        self.name = name
+        self.type = type
+        self.value = value
+
+    def valueAsString(self, sep=',') :
+        if self.type == MatParam.Float :
+            return '{}'.format(self.value)
+        elif self.type == MatParam.Float2 :
+            return '{}{}{}'.format(self.value.x, sep, self.value.y)
+        elif self.type == MatParam.Float3 :
+            return '{}{}{}{}{}'.format(self.value.x, sep, self.value.y, sep, self.value.z)
+        elif self.type == MatParam.Float4 or self.type == MatParam.Color:
+            return '{}{}{}{}{}{}{}'.format(self.value.x, sep, self.value.y, sep, self.value.z, sep, self.value.w)
+        elif self.type == MatParam.Int :
+            return '{d}'.format(self.value)
+        elif self.type == MatParam.Bool :
+            if self.value :
+                return 'true'
+            else :
+                return 'false'
+        elif self.type == MatParam.String or self.type == MatParam.Texture :
+            return self.value
+
+    def typeAsString(self) :
+        if self.type == MatParam.Float: 
+            return 'Float'
+        elif self.type == MatParam.Float2:
+            return 'Float2'
+        elif self.type == MatParam.Float3:
+            return 'Float3'
+        elif self.type == MatParam.Float4:
+            return 'Float4'
+        elif self.type == MatParam.Int:
+            return 'Int'
+        elif self.type == MatParam.Bool:
+            return 'Bool'
+        elif self.type == MatParam.String:
+            return 'String'
+        elif self.type == MatParam.Texture:
+            return 'Texture'
+        elif self.type == MatParam.Color:
+            return 'Color'
+        else :
+            raise Exception('Invalid type!')
+
+    def dump(self) :
+        '''
+        Dump content to stdout for debugging
+        '''
+        print '    Name: {}, Type: {}, Value: {}'.format(self.name, self.typeAsString(), self.valueAsString())
 
 #-------------------------------------------------------------------------------
 class Material :
@@ -387,6 +450,59 @@ class Material :
     Describes a material of a 3D model, basically just a collection
     of MaterialParam objects.
     '''
+    def __init__(self, name='undefined', type='undefined') :
+        self.name = name
+        self.type = type
+        self.params = []
+        self.useCount = 0
+
+    def hasParam(self, paramName) :
+        '''
+        Test if the material already contains a parameter
+        '''
+        for param in self.params :
+            if param.name == paramName :
+                return True
+        else :
+            return False
+
+    def addParam(self, param) :
+        '''
+        Add a material param to the material
+        '''
+        if self.hasParam(param.name) :
+            raise Exception('Param {} already exists on material {}'.format(self.name, param.name))
+        self.params.append(param)
+
+    def getParam(self, name) :
+        '''
+        Get a param by name, returns None if not found
+        '''
+        for param in self.params :
+            if param.name == name :
+                return param
+        else :
+            return None
+
+    def get(self, name) :
+        '''
+        Short-cut method to directly get the value of a param.
+        '''
+        if self.hasParam(name) :
+            return self.getParam(name).value
+        else :
+            return None
+
+    def dump(self) :
+        '''
+        Dump debug info to stdout.
+        '''
+        print '  Name: {}'.format(self.name)
+        print '  Type: {}'.format(self.type)
+        print '  UseCount: {:d}'.format(self.useCount)
+        print '  Params:'
+        for param in self.params :
+            param.dump()
 
 #-------------------------------------------------------------------------------
 class Model :
@@ -399,8 +515,51 @@ class Model :
 
     TODO: animation support, probably specific character stuff
     '''
+    def __init__(self, name) :
+        self.name = name
+        self.mesh = None
+        self.materials = []
 
+    def getNumMaterials(self) :
+        return len(self.materials)
 
+    def findMaterial(self, name) :
+        '''
+        Return material by name, or None if not exists
+        '''
+        for mat in self.materials :
+            if mat.name == name :
+                return mat
+        else :
+            return None
+
+    def findMaterialIndex(self, name) :
+        '''
+        Return material index by name, or None if not exists
+        '''
+        i = 0
+        for mat in self.materials :
+            if mat.name == name :
+                return i
+            i += 1
+        else :
+            return None
+
+    def addMaterial(self, material) :
+        '''
+        Add a new material, the material must not yet exist
+        '''
+        if self.findMaterial(material.name) != None :
+            raise Exception('Material {} already exists on Model {}!'.format(material.name, self.name))
+        self.materials.append(material)
+
+    def dumpMaterials(self) :
+        '''
+        Dump materials to stdout for debugging
+        '''
+        for i in range(0, len(self.materials)) :
+            print 'Material {:d}'.format(i)
+            self.materials[i].dump()
 
 #--- eof
 

@@ -229,37 +229,37 @@ class TestMesh(unittest.TestCase) :
         self.assertEqual(mesh.triangles[8].getNormal(), mesh.getVertex(16, norm0))
         self.assertEqual(mesh.triangles[10].getNormal(), mesh.getVertex(20, norm0))
 
-        stlasciiwriter.writeMesh(mesh, 'data/cube_ascii.stl')
-        threejswriter.writeMesh(mesh, 'data/cube_threejs.json', 50.0)
+        stlasciiwriter.writeMesh(mesh, 'data/cube.ascii.stl')
+        threejswriter.writeMesh(mesh, 'data/cube.mesh.js', 50.0)
 
     def test_CylinderGenerator(self) :
 
         vl = self._buildVertexLayout()
         mesh = cylinder.generateMesh(vl, 1.0, 1.0, 4.0, 36, 1)
         mesh = computeTriangleNormals.do(mesh)
-        stlasciiwriter.writeMesh(mesh, 'data/cylinder_ascii.stl')
-        threejswriter.writeMesh(mesh, 'data/cylinder_threejs.json', 50.0)
+        stlasciiwriter.writeMesh(mesh, 'data/cylinder.ascii.stl')
+        threejswriter.writeMesh(mesh, 'data/cylinder.mesh.js', 50.0)
 
         mesh = cylinder.generateMesh(vl, 2.0, 0.5, 4.0, 18, 4)
         mesg = computeTriangleNormals.do(mesh)
-        stlasciiwriter.writeMesh(mesh, 'data/complex_cylinder_ascii.stl')
-        threejswriter.writeMesh(mesh, 'data/complex_cylinder_threejs.json', 50.0)
+        stlasciiwriter.writeMesh(mesh, 'data/complex_cylinder.ascii.stl')
+        threejswriter.writeMesh(mesh, 'data/complex_cylinder.mesh.js', 50.0)
 
     def test_SphereGenerator(self) :
 
         vl = self._buildVertexLayout()
         mesh = sphere.generateMesh(vl, 2.0, 38, 18)
         mesh = computeTriangleNormals.do(mesh)
-        stlasciiwriter.writeMesh(mesh, 'data/sphere_ascii.stl')
-        threejswriter.writeMesh(mesh, 'data/sphere_threejs.json', 50.0)
+        stlasciiwriter.writeMesh(mesh, 'data/sphere.ascii.stl')
+        threejswriter.writeMesh(mesh, 'data/sphere.mesh.js', 50.0)
 
     def test_TorusGenerator(self) :
 
         vl = self._buildVertexLayout()
         mesh = torus.generateMesh(vl, 1.0, 3.0, 18, 36)
         mesh = computeTriangleNormals.do(mesh)
-        stlasciiwriter.writeMesh(mesh, 'data/torus_ascii.stl')
-        threejswriter.writeMesh(mesh, 'data/torus_threejs.json', 100.0)
+        stlasciiwriter.writeMesh(mesh, 'data/torus.ascii.stl')
+        threejswriter.writeMesh(mesh, 'data/torus.mesh.js', 100.0)
 
     def test_Deflate(self) :
 
@@ -282,8 +282,8 @@ class TestMesh(unittest.TestCase) :
         self.assertEqual(len(indexMap), 24)
         self.assertEqual(reducedMesh.getNumVertices(), 8)
 
-        stlasciiwriter.writeMesh(reducedMesh, 'data/cube_reduced_ascii.stl')
-        threejswriter.writeMesh(reducedMesh, 'data/cube_reduced_threejs.json', 50.0)
+        stlasciiwriter.writeMesh(reducedMesh, 'data/cube_reduced.ascii.stl')
+        threejswriter.writeMesh(reducedMesh, 'data/cube_reduced.mesh.js', 50.0)
 
 if __name__ == '__main__':
     unittest.main()
