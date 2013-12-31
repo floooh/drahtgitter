@@ -7,35 +7,35 @@ from drahtgitter.core import *
 import drahtgitter.readers.fbxreader as fbxreader
 import drahtgitter.operators.deflate as deflate
 import drahtgitter.operators.randomMaterialColors as randomMaterialColors
+import drahtgitter.operators.removeDegenerateTriangles as removeDegenerateTriangles
+import drahtgitter.operators.computeTriangleNormals as computeTriangleNormals
 import drahtgitter.writers.stlasciiwriter as stlasciiwriter
 import drahtgitter.writers.threejswriter as threejswriter
+import drahtgitter.readers.fbxutil.nebulamaterialparser as nebulamaterialparser
 
 class TestFBX(unittest.TestCase) :
 
-    def _convertMesh(self, name, scale) :
-        mesh = fbxreader.readMesh('data/' + name + '.fbx')
-        mesh, indexMap = deflate.do(mesh)
-        stlasciiwriter.writeMesh(mesh, 'data/' + name + '.ascii.stl')
-        threejswriter.writeMesh(mesh, 'data/' + name + '.geom.js', scale)
-
-    def test_FbxMeshReader(self) :
-        self._convertMesh('cubeman', 10.0)
-        self._convertMesh('teapot', 500.0)
-        self._convertMesh('radonlabs_tiger', 100.0)
-        self._convertMesh('radonlabs_opelblitz', 100.0)
-
-    def _convertModel(self, name, scale) :
+    def _convert(self, name, scale) :
         config = fbxreader.config()
-        model = fbxreader.readModel(config, 'data/' + name + '.fbx', name)
+        model = fbxreader.read(config, 'data/' + name + '.fbx', name)
         model = randomMaterialColors.do(model)
+        model, indexMap = deflate.do(model)
+        model = removeDegenerateTriangles.do(model)
+        model = computeTriangleNormals.do(model)
         model.dumpMaterials()
-        threejswriter.writeModel(model, 'data/' + name + '.model.js', 100)
+        threejswriter.write(model, 'data/' + name + '.model.js', 100)
 
-    def test_FbxModelReader(self) :
-        self._convertModel('teapot_yellow', 100)
-        self._convertModel('teapot_transparent', 100)
-        self._convertModel('radonlabs_opelblitz', 100)
-        self._convertModel('radonlabs_tiger', 100)
+    def test_FbxReader(self) :
+        self._convert('teapot_yellow', 100)
+        self._convert('teapot_transparent', 100)
+        self._convert('radonlabs_opelblitz', 100)
+        self._convert('radonlabs_tiger', 100)
+
+    def test_NebulaMaterialParser(self) :
+        config = fbxreader.config()
+        config.materialParsers.insert(0, nebulamaterialparser.nebulaMaterialParser())
+        model = fbxreader.read(config, 'data/radonlabs_opelblitz.fbx', 'blitz')
+        model.dumpMaterials()
 
 if __name__ == '__main__':
     unittest.main()

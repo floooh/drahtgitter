@@ -6,14 +6,11 @@ FIXME: uv coords!
 from ..core import *
 
 #-------------------------------------------------------------------------------
-def generateMesh(vertexLayout, radius, numSlices, numStacks) :
+def generate(vertexLayout, radius, numSlices, numStacks) :
     '''
-    Generate sphere mesh
+    Generate sphere model
     '''
-    pos0 = ('position', 0)
-    norm0 = ('normal', 0)
-    tex0 = ('texcoord', 0)
-
+    dgLogger.debug('generators.sphere')
     # generate sin/cos tables
     sinTableI = []
     cosTableI = []
@@ -33,11 +30,13 @@ def generateMesh(vertexLayout, radius, numSlices, numStacks) :
     numVerts = 2 + numSlices * (numStacks - 1)
     numTris  = 2 * numSlices + 2 * numSlices * (numStacks - 2)
     mesh = Mesh(vertexLayout, numVerts, numTris)
+    posOffset = mesh.getComponentOffset(('position', 0))
+    normOffset = mesh.getComponentOffset(('normal', 0))
 
     # top pole vertex
     curVertexIndex = 0
-    mesh.setVertex(curVertexIndex, pos0, Vector(0.0, 0.0, radius))
-    mesh.setVertex(curVertexIndex, norm0, Vector(0.0, 0.0, 1.0))
+    mesh.setData3(curVertexIndex, posOffset, 0.0, 0.0, radius)
+    mesh.setData3(curVertexIndex, normOffset, 0.0, 0.0, 1.0)
     curVertexIndex += 1
 
     # stack vertices
@@ -48,13 +47,13 @@ def generateMesh(vertexLayout, radius, numSlices, numStacks) :
             nz = cosTableJ[j]
             norm = Vector(nx, ny, nz)
             pos  = Vector.scale(norm, radius)
-            mesh.setVertex(curVertexIndex, pos0, pos)
-            mesh.setVertex(curVertexIndex, norm0, norm)
+            mesh.setData3(curVertexIndex, posOffset, pos.x, pos.y, pos.z)
+            mesh.setData3(curVertexIndex, normOffset, norm.x, norm.y, norm.z)
             curVertexIndex += 1
 
     # base pole index
-    mesh.setVertex(curVertexIndex, pos0, Vector(0.0, 0.0, -radius))
-    mesh.setVertex(curVertexIndex, norm0, Vector(0.0, 0.0, -1.0))
+    mesh.setData3(curVertexIndex, posOffset, 0.0, 0.0, -radius)
+    mesh.setData3(curVertexIndex, normOffset, 0.0, 0.0, -1.0)
     curVertexIndex += 1
     if curVertexIndex != mesh.getNumVertices() :
         raise Exception("Vertex count mismatch!")
@@ -99,6 +98,11 @@ def generateMesh(vertexLayout, radius, numSlices, numStacks) :
     if triIndex != mesh.getNumTriangles() :
         raise Exception("Triangle count mismatch")
 
-    return mesh
+    # create a dummy model
+    model = Model('sphere')
+    model.mesh = mesh
+    model.addMaterial(Material.createDefaultMaterial())
+
+    return model
 
 #--- eof

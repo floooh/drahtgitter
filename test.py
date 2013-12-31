@@ -85,10 +85,6 @@ class TestMesh(unittest.TestCase) :
         self.assertEqual(vc.offset, 0)
         vc.validate()
 
-        # vertex layout with invalid name
-        vc = VertexComponent(('bla', 0), 1)
-        self.assertRaises(Exception, vc.validate)
-
         # vertex layout with invalid offset
         vc = VertexComponent(('position', -1), 3)
         self.assertRaises(Exception, vc.validate)
@@ -104,7 +100,7 @@ class TestMesh(unittest.TestCase) :
     def test_VertexLayout(self) :
         # create an empty vertex layout object
         vl = VertexLayout()
-        self.assertEqual(vl.currentOffset, 0)
+        self.assertEqual(vl.size, 0)
 
         # add a few vertex components (position, normal and 2 texcoord sets)
         pos0 = ('position', 0)
@@ -116,7 +112,7 @@ class TestMesh(unittest.TestCase) :
         vl.add(VertexComponent(tex0, 2))
         vl.add(VertexComponent(tex1, 2))
 
-        self.assertEqual(vl.currentOffset, 10)
+        self.assertEqual(vl.size, 10)
         self.assertEqual(len(vl.vertexComponents), 4)
 
         self.assertTrue(vl.contains(pos0))
@@ -135,7 +131,7 @@ class TestMesh(unittest.TestCase) :
         self.assertEqual(vl.getComponent(pos0).nameAndIndex[0], 'position')
         self.assertEqual(vl.getComponent(pos0).nameAndIndex[1], 0)
 
-        self.assertEqual(vl.size(), 10)
+        self.assertEqual(vl.size, 10)
 
     def test_Mesh(self) :
 
@@ -209,81 +205,80 @@ class TestMesh(unittest.TestCase) :
     def test_CubeGenerator(self) :
 
         vl = self._buildVertexLayout()
-        mesh = cube.generateMesh(vl, Vector(2.0, 2.0, 2.0))
-        self.assertEqual(mesh.getNumVertices(), 24)
-        self.assertEqual(mesh.getNumTriangles(), 12)
-        mesh = computeTriangleNormals.do(mesh)
+        model = cube.generate(vl, Vector(2.0, 2.0, 2.0))
+        self.assertEqual(model.mesh.getNumVertices(), 24)
+        self.assertEqual(model.mesh.getNumTriangles(), 12)
+        model = computeTriangleNormals.do(model)
         
+        self.assertEqual(model.mesh.triangles[0].getNormal(), model.mesh.triangles[1].getNormal())
+        self.assertEqual(model.mesh.triangles[2].getNormal(), model.mesh.triangles[3].getNormal())
+        self.assertEqual(model.mesh.triangles[4].getNormal(), model.mesh.triangles[5].getNormal())
+        self.assertEqual(model.mesh.triangles[6].getNormal(), model.mesh.triangles[7].getNormal())
+        self.assertEqual(model.mesh.triangles[8].getNormal(), model.mesh.triangles[9].getNormal())
+        self.assertEqual(model.mesh.triangles[10].getNormal(), model.mesh.triangles[11].getNormal())
 
-        self.assertEqual(mesh.triangles[0].getNormal(), mesh.triangles[1].getNormal())
-        self.assertEqual(mesh.triangles[2].getNormal(), mesh.triangles[3].getNormal())
-        self.assertEqual(mesh.triangles[4].getNormal(), mesh.triangles[5].getNormal())
-        self.assertEqual(mesh.triangles[6].getNormal(), mesh.triangles[7].getNormal())
-        self.assertEqual(mesh.triangles[8].getNormal(), mesh.triangles[9].getNormal())
-        self.assertEqual(mesh.triangles[10].getNormal(), mesh.triangles[11].getNormal())
+        self.assertEqual(model.mesh.triangles[0].getNormal(), model.mesh.getVertex(0, norm0))
+        self.assertEqual(model.mesh.triangles[2].getNormal(), model.mesh.getVertex(4, norm0))
+        self.assertEqual(model.mesh.triangles[4].getNormal(), model.mesh.getVertex(8, norm0))
+        self.assertEqual(model.mesh.triangles[6].getNormal(), model.mesh.getVertex(12, norm0))
+        self.assertEqual(model.mesh.triangles[8].getNormal(), model.mesh.getVertex(16, norm0))
+        self.assertEqual(model.mesh.triangles[10].getNormal(), model.mesh.getVertex(20, norm0))
 
-        self.assertEqual(mesh.triangles[0].getNormal(), mesh.getVertex(0, norm0))
-        self.assertEqual(mesh.triangles[2].getNormal(), mesh.getVertex(4, norm0))
-        self.assertEqual(mesh.triangles[4].getNormal(), mesh.getVertex(8, norm0))
-        self.assertEqual(mesh.triangles[6].getNormal(), mesh.getVertex(12, norm0))
-        self.assertEqual(mesh.triangles[8].getNormal(), mesh.getVertex(16, norm0))
-        self.assertEqual(mesh.triangles[10].getNormal(), mesh.getVertex(20, norm0))
-
-        stlasciiwriter.writeMesh(mesh, 'data/cube.ascii.stl')
-        threejswriter.writeMesh(mesh, 'data/cube.mesh.js', 50.0)
+        stlasciiwriter.write(model, 'data/cube.ascii.stl')
+        threejswriter.write(model, 'data/cube.model.js', 50.0)
 
     def test_CylinderGenerator(self) :
 
         vl = self._buildVertexLayout()
-        mesh = cylinder.generateMesh(vl, 1.0, 1.0, 4.0, 36, 1)
-        mesh = computeTriangleNormals.do(mesh)
-        stlasciiwriter.writeMesh(mesh, 'data/cylinder.ascii.stl')
-        threejswriter.writeMesh(mesh, 'data/cylinder.mesh.js', 50.0)
+        model = cylinder.generate(vl, 1.0, 1.0, 4.0, 36, 1)
+        model = computeTriangleNormals.do(model)
+        stlasciiwriter.write(model, 'data/cylinder.ascii.stl')
+        threejswriter.write(model, 'data/cylinder.model.js', 50.0)
 
-        mesh = cylinder.generateMesh(vl, 2.0, 0.5, 4.0, 18, 4)
-        mesg = computeTriangleNormals.do(mesh)
-        stlasciiwriter.writeMesh(mesh, 'data/complex_cylinder.ascii.stl')
-        threejswriter.writeMesh(mesh, 'data/complex_cylinder.mesh.js', 50.0)
+        model = cylinder.generate(vl, 2.0, 0.5, 4.0, 18, 4)
+        model = computeTriangleNormals.do(model)
+        stlasciiwriter.write(model, 'data/complex_cylinder.ascii.stl')
+        threejswriter.write(model, 'data/complex_cylinder.model.js', 50.0)
 
     def test_SphereGenerator(self) :
 
         vl = self._buildVertexLayout()
-        mesh = sphere.generateMesh(vl, 2.0, 38, 18)
-        mesh = computeTriangleNormals.do(mesh)
-        stlasciiwriter.writeMesh(mesh, 'data/sphere.ascii.stl')
-        threejswriter.writeMesh(mesh, 'data/sphere.mesh.js', 50.0)
+        model = sphere.generate(vl, 2.0, 38, 18)
+        model = computeTriangleNormals.do(model)
+        stlasciiwriter.write(model, 'data/sphere.ascii.stl')
+        threejswriter.write(model, 'data/sphere.model.js', 50.0)
 
     def test_TorusGenerator(self) :
 
         vl = self._buildVertexLayout()
-        mesh = torus.generateMesh(vl, 1.0, 3.0, 18, 36)
-        mesh = computeTriangleNormals.do(mesh)
-        stlasciiwriter.writeMesh(mesh, 'data/torus.ascii.stl')
-        threejswriter.writeMesh(mesh, 'data/torus.mesh.js', 100.0)
+        model = torus.generate(vl, 1.0, 3.0, 18, 36)
+        model = computeTriangleNormals.do(model)
+        stlasciiwriter.write(model, 'data/torus.ascii.stl')
+        threejswriter.write(model, 'data/torus.model.js', 100.0)
 
     def test_Deflate(self) :
 
         # generate a cube
         vl = self._buildVertexLayout()
-        mesh = cube.generateMesh(vl, Vector(2.0, 2.0, 2.0))
-        mesh = computeTriangleNormals.do(mesh)
+        model = cube.generate(vl, Vector(2.0, 2.0, 2.0))
+        model = computeTriangleNormals.do(model)
 
         # reduce to only positions
         reducedVl = VertexLayout()
         reducedVl.add(VertexComponent(pos0, 3))
-        fixedMesh = fixVertexComponents.do(mesh, reducedVl)
-        self.assertTrue(fixedMesh.vertexLayout.contains(pos0))
-        self.assertFalse(fixedMesh.vertexLayout.contains(norm0))
-        self.assertFalse(fixedMesh.vertexLayout.contains(tex0))
+        fixedModel = fixVertexComponents.do(model, reducedVl)
+        self.assertTrue(fixedModel.mesh.vertexLayout.contains(pos0))
+        self.assertFalse(fixedModel.mesh.vertexLayout.contains(norm0))
+        self.assertFalse(fixedModel.mesh.vertexLayout.contains(tex0))
 
         # remove duplicate vertices
-        reducedMesh, indexMap = deflate.do(fixedMesh)
+        reducedModel, indexMap = deflate.do(fixedModel)
 
         self.assertEqual(len(indexMap), 24)
-        self.assertEqual(reducedMesh.getNumVertices(), 8)
+        self.assertEqual(reducedModel.mesh.getNumVertices(), 8)
 
-        stlasciiwriter.writeMesh(reducedMesh, 'data/cube_reduced.ascii.stl')
-        threejswriter.writeMesh(reducedMesh, 'data/cube_reduced.mesh.js', 50.0)
+        stlasciiwriter.write(reducedModel, 'data/cube_reduced.ascii.stl')
+        threejswriter.write(reducedModel, 'data/cube_reduced.model.js', 50.0)
 
 if __name__ == '__main__':
     unittest.main()

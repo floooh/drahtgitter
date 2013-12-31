@@ -33,8 +33,8 @@ class hwShaderMaterialParser :
             impl = GetImplementation(fbxMaterial, 'ImplementationCGFX')
             shdType = 'CGFX'
     
-        print 'Hardware Shader: {}'.format(fbxMaterial.GetName())
-        print 'Shader Type: {}'.format(shdType)
+        dgLogger.debug('Hardware Shader: {}'.format(fbxMaterial.GetName()))
+        dgLogger.debug('Shader Type: {}'.format(shdType))
 
         mat.type = 'FBX HW {}'.format(shdType)
 
@@ -43,8 +43,8 @@ class hwShaderMaterialParser :
         for entryIndex in range(0, table.GetEntryCount()) :
             entry = table.GetEntry(entryIndex)
 
-            print 'Entry Type: {}'.format(entry.GetType(True))
-            print 'Entry Source: {}'.format(entry.GetSource())
+            dgLogger.debug('Entry Type: {}'.format(entry.GetType(True)))
+            dgLogger.debug('Entry Source: {}'.format(entry.GetSource()))
 
             raise Exception('FIXME FIXME FIXME')
 

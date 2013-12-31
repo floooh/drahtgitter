@@ -18,15 +18,15 @@ uv0 = ('texcoord', 0)
 color0 = ('color', 0)
 
 #-------------------------------------------------------------------------------
-def getFaceMask(mesh, withFaceMaterial) :
+def getFaceMask(model, withFaceMaterial) :
     faceMask = 0
-    if mesh.vertexLayout.contains(norm0) :
+    if model.mesh.vertexLayout.contains(norm0) :
         # has face-vertex normals
         faceMask |= NormalBit
-    if mesh.vertexLayout.contains(uv0) :
+    if model.mesh.vertexLayout.contains(uv0) :
         # has face-vertex uvs
         faceMask |= UvBit
-    if mesh.vertexLayout.contains(color0) :
+    if model.mesh.vertexLayout.contains(color0) :
         # has face-vertex colors
         faceMask |= ColorBit
     if withFaceMaterial :
@@ -35,116 +35,116 @@ def getFaceMask(mesh, withFaceMaterial) :
     return faceMask
 
 #-------------------------------------------------------------------------------
-def reducePositions(mesh) :
+def reducePositions(model) :
     posVertexLayout = VertexLayout()
     posVertexLayout.add(VertexComponent(pos0, 3))
-    posMesh = fixVertexComponents.do(mesh, posVertexLayout)
-    posMesh, posIndexMap = deflate.do(posMesh)
-    if posMesh.getNumTriangles() != mesh.getNumTriangles() :
+    posModel = fixVertexComponents.do(model, posVertexLayout)
+    posModel, posIndexMap = deflate.do(posModel)
+    if posModel.mesh.getNumTriangles() != model.mesh.getNumTriangles() :
         raise Exception('Triangle count mismatch!')
-    return posMesh
+    return posModel
 
 #-------------------------------------------------------------------------------
-def writePositions(f, posMesh) :
-    posNumVertices = posMesh.getNumVertices()
+def writePositions(f, posModel) :
+    posNumVertices = posModel.mesh.getNumVertices()
     f.write('\t"vertices": [ ')
-    for vertexIndex in range(0, posNumVertices) :
-        pos = posMesh.getVertex(vertexIndex, pos0)
+    for vertexIndex in xrange(0, posNumVertices) :
+        pos = posModel.mesh.getVertex(vertexIndex, pos0)
         f.write('{},{},{}'.format(pos.x, pos.y, pos.z))
         if vertexIndex < posNumVertices - 1 :
             f.write(',')
     f.write(' ]')
 
 #-------------------------------------------------------------------------------
-def reduceNormals(mesh) :
+def reduceNormals(model) :
     normVertexLayout = VertexLayout()
     normVertexLayout.add(VertexComponent(norm0, 3))
-    normMesh = fixVertexComponents.do(mesh, normVertexLayout)
-    normMesh, normIndexMap = deflate.do(normMesh)
-    if normMesh.getNumTriangles() != mesh.getNumTriangles() :
+    normModel = fixVertexComponents.do(model, normVertexLayout)
+    normModel, normIndexMap = deflate.do(normModel)
+    if normModel.mesh.getNumTriangles() != model.mesh.getNumTriangles() :
         raise Exception('Triangle count mismatch!')
-    return normMesh    
+    return normModel    
 
 #-------------------------------------------------------------------------------
-def writeNormals(f, normMesh) :
-    normNumVertices = normMesh.getNumVertices()
+def writeNormals(f, normModel) :
+    normNumVertices = normModel.mesh.getNumVertices()
     f.write('\t"normals": [ ')
-    for vertexIndex in range(0, normNumVertices) :
-        norm = normMesh.getVertex(vertexIndex, norm0)
+    for vertexIndex in xrange(0, normNumVertices) :
+        norm = normModel.mesh.getVertex(vertexIndex, norm0)
         f.write('{},{},{}'.format(norm.x, norm.y, norm.z))
         if vertexIndex < normNumVertices - 1 :
             f.write(',')
     f.write(' ]')
 
 #-------------------------------------------------------------------------------
-def reduceUvs(mesh) :
+def reduceUvs(model) :
     uvVertexLayout = VertexLayout()
     uvVertexLayout.add(VertexComponent(uv0, 2))
-    uvMesh = fixVertexComponents.do(mesh, uvVertexLayout)
-    uvMesh, uvIndexMap = deflate.do(uvMesh)
-    if uvMesh.getNumTriangles() != mesh.getNumTriangles() :
+    uvModel = fixVertexComponents.do(model, uvVertexLayout)
+    uvModel, uvIndexMap = deflate.do(uvModel)
+    if uvModel.mesh.getNumTriangles() != model.mesh.getNumTriangles() :
         raise Exception('Triangle count mismatch!')
-    return uvMesh
+    return uvModel
 
 #-------------------------------------------------------------------------------
-def writeUvs(f, uvMesh) :
-    uvNumVertices = uvMesh.getNumVertices()
+def writeUvs(f, uvModel) :
+    uvNumVertices = uvModel.mesh.getNumVertices()
     f.write('\t"uvs": [ [ ')
-    for vertexIndex in range(0, uvNumVertices) :
-        uv = uvMesh.getVertex(vertexIndex, uv0)
+    for vertexIndex in xrange(0, uvNumVertices) :
+        uv = uvModel.mesh.getVertex(vertexIndex, uv0)
         f.write('{},{}'.format(uv.x, uv.y))
         if vertexIndex < uvNumVertices - 1 :
             f.write(',')
     f.write(' ] ]')
 
 #-------------------------------------------------------------------------------
-def reduceColors(mesh) :
+def reduceColors(model) :
     colorVertexLayout = VertexLayout()
     colorVertexLayout.add(VertexComponent(color0, 4))
-    colorMesh = fixVertexComponents.do(mesh, colorVertexLayout)
-    colorMesh, colorIndexMap = deflate.do(colorMesh)
-    if colorMesh.getNumTriangles() != mesh.getNumTriangles() :
+    colorModel = fixVertexComponents.do(model, colorVertexLayout)
+    colorModel, colorIndexMap = deflate.do(colorModel)
+    if colorModel.mesh.getNumTriangles() != model.mesh.getNumTriangles() :
         raise Exception('Triangle count mismatch')
-    return colorMesh
+    return colorModel
 
 #-------------------------------------------------------------------------------
-def writeColors(f, colorMesh) :
-    colorNumVertices = colorMesh.getNumVertices()
+def writeColors(f, colorModel) :
+    colorNumVertices = colorModel.mesh.getNumVertices()
     f.write('\t"colors": [ ')
-    for vertexIndex in range(0, colorNumVertices) :
-        color = colorMesh.getVertex(vertexIndex, color0)
+    for vertexIndex in xrange(0, colorNumVertices) :
+        color = colorModel.mesh.getVertex(vertexIndex, color0)
         f.write('{},{},{},{}'.format(color.x, color.y, color.z, color.w))
         if vertexIndex < colorNumVertices - 1 :
             f.write(',')
     f.write(' ]')
 
 #-------------------------------------------------------------------------------
-def writeFaceIndices(f, faceMask, srcMesh, posMesh, normMesh, uvMesh, colorMesh) :
+def writeFaceIndices(f, faceMask, srcModel, posModel, normModel, uvModel, colorModel) :
 
     f.write('\t"faces": [ ')
-    numFaces = srcMesh.getNumTriangles()
+    numFaces = srcModel.mesh.getNumTriangles()
     for faceIndex in range(0, numFaces) :
 
         # lead byte
         f.write('{}'.format(faceMask))
         # 3 position vertex indices
-        tri = posMesh.triangles[faceIndex]
+        tri = posModel.mesh.triangles[faceIndex]
         f.write(',{},{},{}'.format(tri.vertexIndex0, tri.vertexIndex1, tri.vertexIndex2))
         # write material index 
         if faceMask & MaterialBit :
-            tri = srcMesh.triangles[faceIndex]
+            tri = srcModel.mesh.triangles[faceIndex]
             f.write(',{}'.format(tri.groupIndex))
         # write uv indices
         if faceMask & UvBit :
-            tri = uvMesh.triangles[faceIndex]
+            tri = uvModel.mesh.triangles[faceIndex]
             f.write(',{},{},{}'.format(tri.vertexIndex0, tri.vertexIndex1, tri.vertexIndex2))
         # write normal indices
         if faceMask & NormalBit :
-            tri = normMesh.triangles[faceIndex]
+            tri = normModel.mesh.triangles[faceIndex]
             f.write(',{},{},{}'.format(tri.vertexIndex0, tri.vertexIndex1, tri.vertexIndex2))
         # write color indices
         if faceMask & ColorBit :
-            tri = normMesh.triangles[faceIndex]
+            tri = normModel.mesh.triangles[faceIndex]
             f.write(',{},{},{}'.format(tri.vertexIndex0, tri.vertexIndex1, tri.vertexIndex2))
         if faceIndex < numFaces - 1 :
             f.write(',')
@@ -200,32 +200,32 @@ def writeMaterials(f, model) :
     f.write('\t]')
 
 #-------------------------------------------------------------------------------
-def writeGeneric(model, mesh, path, geomScale = 1.0) :
+def writeGeneric(model, path, geomScale = 1.0) :
     '''
     Generic writer function, will be called by writeMesh and writeModels.
     If model != None materials will be written, otherwise only pure
     geometry.
     '''
-    if not mesh.vertexLayout.contains(pos0) :
+    if not model.mesh.vertexLayout.contains(pos0) :
         raise Exception('Need at least position 0 vertex component!')
 
     # compute the face indices lead byte
-    faceMask = getFaceMask(mesh, model != None)
+    faceMask = getFaceMask(model, True)
 
     # extract vertex components and remove duplicates
-    posMesh = reducePositions(mesh)
+    posModel = reducePositions(model)
     if faceMask & NormalBit :
-        normMesh = reduceNormals(mesh)
+        normModel = reduceNormals(model)
     else :
-        normMesh = None
+        normModel = None
     if faceMask & UvBit :
-        uvMesh = reduceUvs(mesh)
+        uvModel = reduceUvs(model)
     else :
-        uvMesh = None
+        uvModel = None
     if faceMask & ColorBit :
-        colorMesh = reduceColors(mesh)
+        colorModel = reduceColors(model)
     else :
-        colorMesh = None
+        colorModel = None
 
     # write file
     f = open(path, 'w')
@@ -234,14 +234,14 @@ def writeGeneric(model, mesh, path, geomScale = 1.0) :
     f.write('\t"metadata" : {\n')
     f.write('\t\t"formatVersion" : 3.1,\n') 
     f.write('\t\t"generatedBy" : "drahtgitter",\n')
-    f.write('\t\t"vertices" : {:d},\n'.format(posMesh.getNumVertices()))
-    f.write('\t\t"faces" : {:d},\n'.format(posMesh.getNumTriangles()))
-    if normMesh: 
-        f.write('\t\t"normals" : {:d},\n'.format(normMesh.getNumVertices()))
-    if uvMesh:
-        f.write('\t\t"uvs" : [{:d}],\n'.format(uvMesh.getNumVertices()))
-    if colorMesh:
-        f.write('\t\t"colors" : {:d},\n'.format(colorMesh.getNumVertices()))
+    f.write('\t\t"vertices" : {:d},\n'.format(posModel.mesh.getNumVertices()))
+    f.write('\t\t"faces" : {:d},\n'.format(posModel.mesh.getNumTriangles()))
+    if normModel: 
+        f.write('\t\t"normals" : {:d},\n'.format(normModel.mesh.getNumVertices()))
+    if uvModel:
+        f.write('\t\t"uvs" : [{:d}],\n'.format(uvModel.mesh.getNumVertices()))
+    if colorModel:
+        f.write('\t\t"colors" : {:d},\n'.format(colorModel.mesh.getNumVertices()))
     if model != None :
         f.write('\t\t"materials" : {:d}\n'.format(model.getNumMaterials()))
     f.write('\t},\n')
@@ -250,22 +250,21 @@ def writeGeneric(model, mesh, path, geomScale = 1.0) :
     f.write('\t"scale" : {},\n'.format(1.0 / geomScale))
 
     # write materials
-    if model != None :
-        writeMaterials(f, model)
-        f.write(',\n')
-
-    writePositions(f, posMesh)
+    writeMaterials(f, model)
     f.write(',\n')
-    if normMesh :
-        writeNormals(f, normMesh)
+
+    writePositions(f, posModel)
+    f.write(',\n')
+    if normModel :
+        writeNormals(f, normModel)
         f.write(',\n')
-    if uvMesh :
-        writeUvs(f, uvMesh)
+    if uvModel :
+        writeUvs(f, uvModel)
         f.write(',\n')
-    if colorMesh :
-        writeColors(f, colorMesh)
+    if colorModel :
+        writeColors(f, colorModel)
         f.write(',\n')
-    writeFaceIndices(f, faceMask, mesh, posMesh, normMesh, uvMesh, colorMesh)
+    writeFaceIndices(f, faceMask, model, posModel, normModel, uvModel, colorModel)
     f.write('\n')
 
     f.write('}\n')
@@ -273,17 +272,11 @@ def writeGeneric(model, mesh, path, geomScale = 1.0) :
 
 
 #-------------------------------------------------------------------------------
-def writeMesh(mesh, path, geomScale = 1.0) :
-    '''
-    Only write geometry information, loses face material indices.
-    '''
-    writeGeneric(None, mesh, path, geomScale)
-
-#-------------------------------------------------------------------------------
-def writeModel(model, path, geomScale = 1.0) :
+def write(model, path, geomScale = 1.0) :
     '''
     Write complete model information with per-face materials
     '''
-    writeGeneric(model, model.mesh, path, geomScale)
+    dgLogger.debug('writers.threejswriter.writeModel: model={}, path={}, geomScale={}'.format(model.name, path, geomScale))
+    writeGeneric(model, path, geomScale)
 
 #--- eof

@@ -3,6 +3,7 @@ Material related FBX utility functions.
 '''
 
 from ...core import *
+from ..fbxutil.general import dumpUserProperties
 from fbx import *
 
 #-------------------------------------------------------------------------------
@@ -12,9 +13,11 @@ def lookupMaterialIndex(model, fbxNode, fbxMesh) :
     '''
     matCount = fbxNode.GetMaterialCount()
     if matCount == 0 :
-        raise Exception('no material assigned to mesh')
+        dgLogger.warning('No material assigned to mesh {} at node {}'.format(fbxMesh.GetName(), fbxNode.GetName()))
+        return None        
     if matCount > 1 :
-        raise Exception('more then one material assigned to mesh')
+        dgLogger.warning('More then one material assigned to mesh {} at node {}'.format(fbxMesh.GetName(), fbxNode.GetName()))
+        return None
     fbxMaterial = fbxNode.GetMaterial(0)
     matIndex = model.findMaterialIndex(fbxMaterial.GetName())
     return matIndex

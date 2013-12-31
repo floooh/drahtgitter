@@ -34,13 +34,13 @@ class lambertMaterialParser :
         vectorDisplacementColor = getPropVector(fbxMaterial.VectorDisplacementColor, fbxMaterial.VectorDisplacementFactor)
 
         mat.type = 'Lambert'
-        mat.addParam(MatParam('Emissive', MatParam.Color, emissive))
-        mat.addParam(MatParam('Ambient', MatParam.Color, ambient))
-        mat.addParam(MatParam('Diffuse', MatParam.Color, diffuse))
-        mat.addParam(MatParam('Bump', MatParam.Color, bump))
-        mat.addParam(MatParam('NormalMap', MatParam.Color, normalMap))
-        mat.addParam(MatParam('TransparentColor', MatParam.Color, transparentColor))
-        mat.addParam(MatParam('DisplacementColor', MatParam.Color, displacementColor))
+        mat.addParam(MatParam('Emissive', MatParam.Float4, emissive))
+        mat.addParam(MatParam('Ambient', MatParam.Float4, ambient))
+        mat.addParam(MatParam('Diffuse', MatParam.Float4, diffuse))
+        mat.addParam(MatParam('Bump', MatParam.Float4, bump))
+        mat.addParam(MatParam('NormalMap', MatParam.Float4, normalMap))
+        mat.addParam(MatParam('TransparentColor', MatParam.Float4, transparentColor))
+        mat.addParam(MatParam('DisplacementColor', MatParam.Float4, displacementColor))
 
 
 #--- eof

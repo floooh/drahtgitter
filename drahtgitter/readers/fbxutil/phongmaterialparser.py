@@ -37,15 +37,15 @@ class phongMaterialParser :
         shininess  = fbxMaterial.Shininess.Get()
 
         mat.type = 'Phong'
-        mat.addParam(MatParam('Emissive', MatParam.Color, emissive))
-        mat.addParam(MatParam('Ambient', MatParam.Color, ambient))
-        mat.addParam(MatParam('Diffuse', MatParam.Color, diffuse))
-        mat.addParam(MatParam('Bump', MatParam.Color, bump))
-        mat.addParam(MatParam('NormalMap', MatParam.Color, normalMap))
-        mat.addParam(MatParam('TransparentColor', MatParam.Color, transparentColor))
-        mat.addParam(MatParam('DisplacementColor', MatParam.Color, displacementColor))
-        mat.addParam(MatParam('Specular', MatParam.Color, specular))
-        mat.addParam(MatParam('Reflection', MatParam.Color, reflection))
+        mat.addParam(MatParam('Emissive', MatParam.Float4, emissive))
+        mat.addParam(MatParam('Ambient', MatParam.Float4, ambient))
+        mat.addParam(MatParam('Diffuse', MatParam.Float4, diffuse))
+        mat.addParam(MatParam('Bump', MatParam.Float4, bump))
+        mat.addParam(MatParam('NormalMap', MatParam.Float4, normalMap))
+        mat.addParam(MatParam('TransparentColor', MatParam.Float4, transparentColor))
+        mat.addParam(MatParam('DisplacementColor', MatParam.Float4, displacementColor))
+        mat.addParam(MatParam('Specular', MatParam.Float4, specular))
+        mat.addParam(MatParam('Reflection', MatParam.Float4, reflection))
         mat.addParam(MatParam('Shininess', MatParam.Float, shininess))
 
 #--- eof

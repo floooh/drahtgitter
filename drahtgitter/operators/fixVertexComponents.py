@@ -1,15 +1,18 @@
 '''
-Copy the provided mesh object and add or remove vertex components as 
-requested. This will return a new mesh object.
+Copy the provided Model object and add or remove vertex components as 
+requested. This will return a new Model object.
 '''
 
 from ..core import *
 #-------------------------------------------------------------------------------
-def do(srcMesh, dstVertexLayout) :
+def do(srcModel, dstVertexLayout) :
+
+    dgLogger.debug('operators.fixVertexComponents: model={}'.format(srcModel.name))
 
     # create a mapping from existing to new vertex components,
     # one entry per float, -1 for new components (will be
     # filled with 0.0)
+    srcMesh = srcModel.mesh
     srcVertexLayout = srcMesh.vertexLayout
     mapping = []
     for dstComp in dstVertexLayout.vertexComponents.values() :
@@ -35,17 +38,19 @@ def do(srcMesh, dstVertexLayout) :
     dstMesh = Mesh(dstVertexLayout, numVertices, numTriangles)
     for vertexIndex in xrange(0, numVertices) :
         for mapIndex in range(0, len(mapping)) :
-            dstIndex = vertexIndex * dstVertexLayout.size() + mapIndex
+            dstIndex = vertexIndex * dstVertexLayout.size + mapIndex
             if mapping[mapIndex] >= 0 :
-                srcIndex = vertexIndex * srcVertexLayout.size() + mapping[mapIndex]
+                srcIndex = vertexIndex * srcVertexLayout.size + mapping[mapIndex]
                 dstMesh.vertexBuffer[dstIndex] = srcMesh.vertexBuffer[srcIndex]
             else :
                 dstMesh.vertexBuffer[dstIndex] = 0.0
-
-    # copy over the triangles    
     dstMesh.triangles = copy.deepcopy(srcMesh.triangles)
 
-    return dstMesh
+    # create a new Model
+    dstModel = copy.deepcopy(srcModel)
+    dstModel.mesh = dstMesh
+
+    return dstModel
 
 #--- eof
 

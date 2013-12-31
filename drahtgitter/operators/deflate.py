@@ -1,28 +1,27 @@
 '''
-Returns a new Mesh object with duplicate vertices removed and
+Returns a new Model object with duplicate vertices removed and
 also returns a integer array which maps vertices in the
-source mesh to vertices in the returned mesh
+source mesh to vertices in the returned mesh. 
+NOTE that the global DG_TOLERANCE variable defines the
+precision with which the equality test is performed!
 '''
 from ..core import *
-import time
 
 #-------------------------------------------------------------------------------
-def do(srcMesh) :
+def do(srcModel) :
 
-    print 'Deflate before: numVertices {}'.format(srcMesh.getNumVertices())
+    dgLogger.debug('operators.deflate: model={}'.format(srcModel.name))
+
+    srcMesh = srcModel.mesh
 
     # create a sorted key map
-    startTime = time.time()
     keyMap = VertexKeyMap(srcMesh)
     keyMap.sort()
-    print 'Sorting: {}'.format(time.time() - startTime)
-    startTime = time.time()
 
     # create a new vertex buffer with duplicates removed
-    startTime = time.time()
     outIndexMap = [-1] * len(keyMap.keys)
-    vertexSize = srcMesh.vertexLayout.size()
-    dstVertexBuffer = array('f')
+    vertexSize = srcMesh.vertexLayout.size
+    dstVertexBuffer = []
     lastUniqueIndex = -1
     curDstVertexIndex = 0
     for vertexIndex in xrange(0, len(keyMap.keys)):
@@ -38,21 +37,16 @@ def do(srcMesh) :
         # map original vertex index to new vertex index
         outIndexMap[keyMap.keys[vertexIndex].vertexIndex] = curDstVertexIndex - 1
 
-    print 'Remove dups: {}'.format(time.time() - startTime)
-
-    # create a new mesh
-    dstMesh = Mesh(copy.deepcopy(srcMesh.vertexLayout))
-    dstMesh.vertexBuffer = dstVertexBuffer
+    # create a new model
+    dstModel = copy.deepcopy(srcModel)
+    dstModel.mesh.vertexBuffer = dstVertexBuffer
 
     # create a new triangle array for the dst mesh with mapped vertex indices
-    dstMesh.triangles = copy.deepcopy(srcMesh.triangles)
-    for tri in dstMesh.triangles :
+    for tri in dstModel.mesh.triangles :
         tri.vertexIndex0 = outIndexMap[tri.vertexIndex0]
         tri.vertexIndex1 = outIndexMap[tri.vertexIndex1]
         tri.vertexIndex2 = outIndexMap[tri.vertexIndex2]
 
-    print 'Deflate after: numVertices {}'.format(dstMesh.getNumVertices())
-
-    return dstMesh, outIndexMap
+    return dstModel, outIndexMap
 
 #--- eof

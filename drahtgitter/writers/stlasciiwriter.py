@@ -4,10 +4,12 @@
 from ..core import *
 
 #-------------------------------------------------------------------------------
-def writeMesh(mesh, path) :
+def write(model, path) :
 
+    dgLogger.debug('writers.stlasciiwriter.writeMesh: model={}, path={}'.format(model.name, path))
+
+    mesh = model.mesh
     f = open(path, 'w')
-
     pos0 = ('position', 0)
     f.write('solid mesh\n')
     for tri in mesh.triangles :

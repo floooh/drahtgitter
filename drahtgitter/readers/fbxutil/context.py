@@ -3,6 +3,7 @@ The FBX contect class initializes FBX, and loads and prepares a scene for parsin
 '''
 from ...core import *
 from fbx import *
+from ..fbxutil.geometry import removeBadPolygons
 
 #-------------------------------------------------------------------------------
 class Context :
@@ -36,6 +37,7 @@ class Context :
             raise Exception('Failed to triangulate FBX scene!')
         if not self.fbxGeometryConverter.SplitMeshesPerMaterial(self.fbxScene, True) :
             raise Exception('Failed to split meshes by material!')
+        removeBadPolygons(self.fbxScene)
 
         return self.fbxScene
 

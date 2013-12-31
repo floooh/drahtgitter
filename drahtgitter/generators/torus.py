@@ -6,18 +6,17 @@ FIXME uv coord!
 from ..core import *
 
 #-------------------------------------------------------------------------------
-def generateMesh(vertexLayout, innerRadius, outerRadius, numSides, numRings) :
+def generate(vertexLayout, innerRadius, outerRadius, numSides, numRings) :
     '''
-    Generate torus mesh
+    Generate torus model
     '''
-    pos0 = ('position', 0)
-    norm0 = ('normal', 0)
-    tex0 = ('texcoord', 0)
-
+    dgLogger.debug('generators.torus')
     # initialize mesh object
     numVertices = numRings * numSides 
     numTriangles = (numRings-1) * numSides * 2 + numSides * 2
     mesh = Mesh(vertexLayout, numVertices, numTriangles)
+    posOffset = mesh.getComponentOffset(('position', 0))
+    normOffset = mesh.getComponentOffset(('normal', 0))
 
     # generate vertices
     vertexIndex = 0
@@ -34,15 +33,13 @@ def generateMesh(vertexLayout, innerRadius, outerRadius, numSides, numRings) :
             px = cosTheta * (outerRadius + innerRadius * cosPhi)
             py = -sinTheta * (outerRadius + innerRadius * cosPhi)
             pz = sinPhi * innerRadius
-            pos = Vector(px, py, pz)
 
             nx = cosTheta * cosPhi
             ny = -sinTheta * cosPhi
             nz = sinPhi
-            norm = Vector(nx, ny, nz)
 
-            mesh.setVertex(vertexIndex, pos0, pos)
-            mesh.setVertex(vertexIndex, norm0, norm)
+            mesh.setData3(vertexIndex, posOffset, px, py, pz)
+            mesh.setData3(vertexIndex, normOffset, nx, ny, nz)
             vertexIndex += 1
 
     if vertexIndex != mesh.getNumVertices() :
@@ -76,7 +73,12 @@ def generateMesh(vertexLayout, innerRadius, outerRadius, numSides, numRings) :
     if triIndex != mesh.getNumTriangles() :
         raise Exception('Triangle count mismatch!')
 
-    return mesh
+    # create a dummy model
+    model = Model('torus')
+    model.mesh = mesh
+    model.addMaterial(Material.createDefaultMaterial())
+
+    return model
 
 #-- eof
 

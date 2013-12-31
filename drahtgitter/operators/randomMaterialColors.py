@@ -6,6 +6,9 @@ from ..core import *
 
 #-------------------------------------------------------------------------------
 def do(model) :
+
+    dgLogger.debug('operators.randomMaterialColors: model={}'.format(model.name))
+
     for mat in model.materials :
         if mat.hasParam('Diffuse') :
             val = mat.get('Diffuse')

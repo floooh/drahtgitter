@@ -1,17 +1,19 @@
 '''
-Simple cube mesh generator for drahtgitter
+Simple cube primitive generator for drahtgitter
 '''
 
 from ..core import *
 
 #-------------------------------------------------------------------------------
-def generateMesh(vertexLayout, size=Vector(1.0, 1.0, 1.0), origin=Vector(0.0, 0.0, 0.0)) :
+def generate(vertexLayout, size=Vector(1.0, 1.0, 1.0), origin=Vector(0.0, 0.0, 0.0)) :
     '''
-    Generate a cube mesh with given vertex layout, size and origin
+    Generate a cube model with given vertex layout, size and origin
     '''
+    dgLogger.debug('generators.cube')
+
     pos0 = ('position', 0)
     norm0 = ('normal', 0)
-    tex0 = ('texcoord', 0)
+    uv0 = ('texcoord', 0)
 
     coords = [  Vector(-0.5, -0.5, -0.5), Vector(-0.5, -0.5, +0.5),
                 Vector(+0.5, -0.5, +0.5), Vector(+0.5, -0.5, -0.5),
@@ -32,20 +34,30 @@ def generateMesh(vertexLayout, size=Vector(1.0, 1.0, 1.0), origin=Vector(0.0, 0.
 
     mesh = Mesh(vertexLayout, 24, 12)
 
+    posOffset  = mesh.getComponentOffset(pos0)
+    normOffset = mesh.getComponentOffset(norm0)
+    uvOffset   = mesh.getComponentOffset(uv0)
     for i in range(0, 6) :
         for j in range(0, 4) :
             vertIndex = i * 4 + j
             coord = coords[coordMap[i][j]] * size + origin
-            mesh.setVertex(vertIndex, pos0, coord)
-            mesh.setVertex(vertIndex, norm0, norms[i])
-            mesh.setVertex(vertIndex, tex0, uvs[uvMap[i][j]])
+            norm  = norms[i]
+            uv    = uvs[uvMap[i][j]]
+            mesh.setData3(vertIndex, posOffset, coord.x, coord.y, coord.z)
+            mesh.setData3(vertIndex, normOffset, norm.x, norm.y, norm.z)
+            mesh.setData2(vertIndex, uvOffset, uv.x, uv.y)
 
         triIndex = i * 2
         triVertIndex = i * 4
         mesh.setTriangle(triIndex, Triangle(triVertIndex, triVertIndex+1, triVertIndex+2, 0))
         mesh.setTriangle(triIndex + 1, Triangle(triVertIndex+2, triVertIndex+3, triVertIndex, 0))
 
-    return mesh
+    # create a dummy model
+    model = Model('cube')
+    model.mesh = mesh
+    model.addMaterial(Material.createDefaultMaterial())
+
+    return model
 
 #--- eof
 

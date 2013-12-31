@@ -3,9 +3,20 @@ Defines the drahtgitter core classes like Mesh, Material, Bone, ...
 '''
 
 from array import array
+import logging
 import math
 import copy
 import sys
+
+'''
+Initialize the drahtgitter logger object
+'''
+logging.basicConfig(stream=sys.stdout)
+dgLogger = logging.getLogger('dg')
+dgLogger.setLevel(logging.DEBUG)
+
+# NOTE: this tolerance is for ALL vertex components!
+DG_TOLERANCE = 0.00000001
 
 #-------------------------------------------------------------------------------
 class Vector :
@@ -56,7 +67,7 @@ class Vector :
         bx = abs(v1.x - v0.x) < tolerance
         by = abs(v1.y - v0.y) < tolerance
         bz = abs(v1.z - v0.z) < tolerance
-        bw = abs(v1.w - v0.z) < tolerance
+        bw = abs(v1.w - v0.w) < tolerance
         return bx and by and bz and bw
 
     @staticmethod
@@ -100,6 +111,35 @@ class Triangle :
     def getNormal(self) :
         return Vector(self.normalX, self.normalY, self.normalZ)
 
+    def isDegenerate(self, vertexLayout, vertexBuffer) :
+        '''
+        Checks whether this triangle is degenerate.
+        '''
+
+        # check vertex indices
+        if self.vertexIndex0 == self.vertexIndex1 or self.vertexIndex0 == self.vertexIndex2 or self.vertexIndex1 == self.vertexIndex2 :
+            return True
+
+        # check for identical vertices (within DG_TOLERANCE)
+        posOffset = vertexLayout.getComponent(('position', 0)).offset
+        index0 = self.vertexIndex0 * vertexLayout.size + posOffset
+        v0 = Vector(vertexBuffer[index0 + 0], vertexBuffer[index0 + 1], vertexBuffer[index0 + 2])
+        index1 = self.vertexIndex1 * vertexLayout.size + posOffset
+        v1 = Vector(vertexBuffer[index1 + 0], vertexBuffer[index1 + 1], vertexBuffer[index1 + 2])
+        index2 = self.vertexIndex2 * vertexLayout.size + posOffset
+        v2 = Vector(vertexBuffer[index2 + 0], vertexBuffer[index2 + 1], vertexBuffer[index2 + 2])
+        if Vector.equal(v0, v1, DG_TOLERANCE) or Vector.equal(v1, v2, DG_TOLERANCE) or Vector.equal(v0, v2, DG_TOLERANCE) :
+            return True
+
+        # check the cross product
+        v10 = v1 - v0
+        v20 = v2 - v0
+        cross = Vector.cross3(v10, v20)
+        if Vector.equal(cross, Vector(0.0, 0.0, 0.0), 0.0000001) :
+            return True
+
+        return False
+
 #-------------------------------------------------------------------------------
 class VertexComponent :
     '''
@@ -112,14 +152,11 @@ class VertexComponent :
         The offset is the offset of the float data in a vertex (0 is start of
         vertex), size if the number of floats in the vertex (must be between 1 and 4)
         '''
-        self.validNames = ('position', 'texcoord', 'normal', 'tangent', 'binormal', 'color', 'weights', 'indices', 'custom')
         self.nameAndIndex = nameAndIndex
         self.offset = 0
         self.size   = size
 
     def validate(self) :
-        if not self.nameAndIndex[0] in self.validNames :
-            raise Exception('Invalid vertex component name: ' + self.nameAndIndex[0])
         if self.nameAndIndex[1] < 0 or self.nameAndIndex[1] > 8 :
             raise Exception('Stream index must be between 0 and 8')
         if self.size < 1 or self.size > 4 :
@@ -133,7 +170,7 @@ class VertexLayout :
     plain array of floats.
     '''
     def __init__(self) :
-        self.currentOffset = 0
+        self.size = 0
         self.vertexComponents = dict()
 
     def contains(self, nameAndIndex) :
@@ -147,43 +184,32 @@ class VertexLayout :
         Add a vertex component definition to the vertex layout
         '''
         comp.validate()
-        if not isinstance(comp, VertexComponent) :
-            raise TypeError('Component must be of class VertexComponent!')
         if self.contains(comp.nameAndIndex) :
             raise Exception('Component already exists!')
-        comp.offset = self.currentOffset
-        self.currentOffset += comp.size
+        comp.offset = self.size
+        self.size += comp.size
         self.vertexComponents[comp.nameAndIndex] = comp;
 
     def validate(self) :
         '''
         Tests whether the vertex layout is valid.
         '''
-        # must contain position with stream index 0
-        if not ('position', 0) in self.vertexComponents:
-            raise Exception('VertexLayout must contain a position with stream index 0')
-
         # sizes must add up
         size = 0
         for c in self.vertexComponents.values() :
             size += c.size
-        if not size == self.currentOffset :
+        if not size == self.size :
             raise Exception("Vertex component sizes don't add up")
 
     def getComponent(self, nameAndIndex) :
         '''
-        Get a component object by its nameAndIndex type
+        Get a component object by its nameAndIndex type, returns 
+        None if not found.
         '''
-        if not self.contains(nameAndIndex) :
-            raise Exception('Invalid vertex component type ' + nameAndIndex)
-        return self.vertexComponents[nameAndIndex] 
-
-    def size(self) :
-        '''
-        Gets the size of the vertex layout
-        '''
-        return self.currentOffset
-
+        if self.contains(nameAndIndex) :
+            return self.vertexComponents[nameAndIndex] 
+        else :
+            return None
 
 #-------------------------------------------------------------------------------
 class Mesh :
@@ -191,18 +217,18 @@ class Mesh :
         '''
         Holds everything for describing geometry.
         '''
-        self.vertexBuffer = array('f', [0.0] * numVertices * layout.size())
+        self.vertexBuffer = [0.0] * numVertices * layout.size
         self.vertexLayout = layout
         self.triangles    = [Triangle() for _ in xrange(0, numTriangles)]
 
-    def addVertices(self, num) :
+    def reserveVertices(self, num) :
         '''
         Make room for n vertices
         '''
-        for i in xrange(0, num * self.vertexLayout.size()) :
+        for i in xrange(0, num * self.vertexLayout.size) :
             self.vertexBuffer.append(0.0)
 
-    def addTriangles(self, num) :
+    def reserveTriangles(self, num) :
         '''
         Make room for n triangles
         '''
@@ -219,7 +245,7 @@ class Mesh :
         '''
         Get number of vertices
         '''
-        return len(self.vertexBuffer) / self.vertexLayout.size()
+        return len(self.vertexBuffer) / self.vertexLayout.size
 
     def getNumTriangles(self) :
         '''
@@ -248,10 +274,11 @@ class Mesh :
     def setVertex(self, vertexIndex, nameAndIndex, vec) :
         '''
         Set the float values of a vertex component from a vector object.
+        This is convenient but slow.
         '''
         if self.vertexLayout.contains(nameAndIndex) :
             comp = self.vertexLayout.getComponent(nameAndIndex)
-            vbOffset = comp.offset + vertexIndex * self.vertexLayout.size()
+            vbOffset = comp.offset + vertexIndex * self.vertexLayout.size
             self.vertexBuffer[vbOffset] = vec.x
             if comp.size > 1 :
                 self.vertexBuffer[vbOffset + 1] = vec.y
@@ -263,11 +290,12 @@ class Mesh :
     def getVertex(self, vertexIndex, nameAndIndex) :
         '''
         Return a Vector object with the values of a vertex component
+        This is convenient but slow.
         '''
         vec = Vector()
         if self.vertexLayout.contains(nameAndIndex) :
             comp = self.vertexLayout.getComponent(nameAndIndex)
-            vbOffset = comp.offset + vertexIndex * self.vertexLayout.size()
+            vbOffset = comp.offset + vertexIndex * self.vertexLayout.size
             vec.x = self.vertexBuffer[vbOffset]
             if comp.size > 1 :
                 vec.y = self.vertexBuffer[vbOffset + 1]
@@ -277,13 +305,82 @@ class Mesh :
                 vec.w = self.vertexBuffer[vbOffset + 3]
         return vec
 
+    def setData1(self, vertexIndex, compOffset, x) :
+        '''
+        Directly set 1D vertex data with component-offset.
+        '''
+        bufIndex = vertexIndex * self.vertexLayout.size + compOffset
+        self.vertexBuffer[bufIndex] = x
+
+    def setData2(self, vertexIndex, compOffset, x, y) :
+        '''
+        Directly set 2D vertex data with component-offset.
+        This is faster but less convenient then setVertex()
+        '''
+        bufIndex = vertexIndex * self.vertexLayout.size + compOffset
+        self.vertexBuffer[bufIndex] = x
+        self.vertexBuffer[bufIndex + 1] = y
+
+    def setData3(self, vertexIndex, compOffset, x, y, z) :
+        '''
+        Directly set 3D vertex data with component-offset.
+        This is faster but less convenient then setVertex()
+        '''
+        bufIndex = vertexIndex * self.vertexLayout.size + compOffset
+        self.vertexBuffer[bufIndex] = x
+        self.vertexBuffer[bufIndex + 1] = y
+        self.vertexBuffer[bufIndex + 2] = z
+
+    def setData4(self, vertexIndex, compOffset, x, y, z, w) :
+        '''
+        Directly set 4D vertex data with component-offset.
+        This is faster but less convenient then setVertex()
+        '''
+        bufIndex = vertexIndex * self.vertexLayout.size + compOffset
+        self.vertexBuffer[bufIndex] = x
+        self.vertexBuffer[bufIndex + 1] = y
+        self.vertexBuffer[bufIndex + 2] = z
+        self.vertexBuffer[bufIndex + 4] = w
+
+    def getData1(self, vertexIndex, compOffset) :
+        '''
+        Directly get 1D vertex data with component-offset.
+        This is faster but less convenient then getVertex()
+        '''
+        bufIndex = vertexIndex * self.vertexLayout.size + compOffset
+        return self.vertexBuffer[bufIndex]
+
+    def getData2(self, vertexIndex, compOffset) :
+        '''
+        Directly get 2D vertex data with component-offset.
+        This is faster but less convenient then getVertex()
+        '''
+        bufIndex = vertexIndex * self.vertexLayout.size + compOffset
+        return self.vertexBuffer[bufIndex], self.vertexBuffer[bufIndex+1]
+
+    def getData3(self, vertexIndex, compOffset) :
+        '''
+        Directly get 3D vertex data with component-offset.
+        This is faster but less convenient then getVertex()
+        '''
+        bufIndex = vertexIndex * self.vertexLayout.size + compOffset
+        return self.vertexBuffer[bufIndex], self.vertexBuffer[bufIndex+1], self.vertexBuffer[bufIndex+2]
+
+    def getData4(self, vertexIndex, compOffset) :
+        '''
+        Directly get 4D vertex data with component-offset.
+        This is faster but less convenient then getVertex()
+        '''
+        bufIndex = vertexIndex * self.vertexLayout.size + compOffset
+        return self.vertexBuffer[bufIndex], self.vertexBuffer[bufIndex+1], self.vertexBuffer[bufIndex+2], self.vertexBuffer[bufIndex+3]
+
     def dumpVertices(self, nameAndIndex):
         '''
         Debug-print vertices
         '''
         compOffset = self.vertexLayout.getComponent(nameAndIndex).offset
         compSize   = self.vertexLayout.getComponent(nameAndIndex).size
-        vertexSize = self.vertexLayout.size()
+        vertexSize = self.vertexLayout.size
         for vertexIndex in xrange(0, self.getNumVertices()) :
             sys.stdout.write('{} {}{}: '.format(vertexIndex, nameAndIndex[0], nameAndIndex[1]))
             bufferIndex = vertexSize * vertexIndex + compOffset
@@ -307,16 +404,16 @@ class VertexKey :
         static variables used in the cmp method
         '''
         VertexKey.vertexBuffer = mesh.vertexBuffer
-        VertexKey.layoutSize   = mesh.vertexLayout.size()
+        VertexKey.layoutSize   = mesh.vertexLayout.size
 
     def cmp(self, other) :
         i = 0
         while i < VertexKey.layoutSize:
             selfValue  = VertexKey.vertexBuffer[self.bufferIndex + i]
             otherValue = VertexKey.vertexBuffer[other.bufferIndex + i]
-            if selfValue < otherValue :
+            if (selfValue+DG_TOLERANCE) < otherValue :
                 return -1
-            elif selfValue > otherValue :
+            elif selfValue > (otherValue+DG_TOLERANCE) :
                 return 1
             i += 1
         # fallthrough: vertices are identical
@@ -328,9 +425,9 @@ class VertexKey :
         while i < VertexKey.layoutSize:
             selfValue  = VertexKey.vertexBuffer[self.bufferIndex + i]
             otherValue = VertexKey.vertexBuffer[other.bufferIndex + i]
-            if selfValue < otherValue :
+            if (selfValue+DG_TOLERANCE) < otherValue :
                 return True
-            elif selfValue > otherValue :
+            elif selfValue > (otherValue+DG_TOLERANCE) :
                 return False
             i += 1
         # fallthrough: vertices are identical
@@ -349,7 +446,7 @@ class VertexKey :
         while i < VertexKey.layoutSize:
             selfValue  = VertexKey.vertexBuffer[self.bufferIndex + i]
             otherValue = VertexKey.vertexBuffer[other.bufferIndex + i]
-            if selfValue != otherValue :
+            if abs(selfValue - otherValue) >= DG_TOLERANCE :
                 return True
             i += 1
         # fallthrough: vertices are identical
@@ -363,14 +460,14 @@ class VertexKeyMap :
     '''
     def __init__(self, mesh) :
         self.mesh = mesh
-        vertexLayoutSize = mesh.vertexLayout.size()
+        vertexLayoutSize = mesh.vertexLayout.size
         self.keys = [VertexKey(i, vertexLayoutSize) for i in xrange(0, mesh.getNumVertices())]
 
     def sort(self) :
         '''
         Sort the contained vertex key
         '''
-        if len(self.keys) > 1 and self.keys[1].bufferIndex != self.mesh.vertexLayout.size() :
+        if len(self.keys) > 1 and self.keys[1].bufferIndex != self.mesh.vertexLayout.size :
             raise Exception('Vertex layout size has changed!')
         VertexKey.init(self.mesh)
         self.keys.sort()
@@ -390,9 +487,8 @@ class MatParam :
     Bool = 7
     String = 8
     Texture = 9
-    Color = 10
 
-    def __init__(self, name, type, value) :
+    def __init__(self, name=None, type=None, value=None) :
         self.name = name
         self.type = type
         self.value = value
@@ -404,10 +500,10 @@ class MatParam :
             return '{}{}{}'.format(self.value.x, sep, self.value.y)
         elif self.type == MatParam.Float3 :
             return '{}{}{}{}{}'.format(self.value.x, sep, self.value.y, sep, self.value.z)
-        elif self.type == MatParam.Float4 or self.type == MatParam.Color:
+        elif self.type == MatParam.Float4:
             return '{}{}{}{}{}{}{}'.format(self.value.x, sep, self.value.y, sep, self.value.z, sep, self.value.w)
         elif self.type == MatParam.Int :
-            return '{d}'.format(self.value)
+            return '{:d}'.format(self.value)
         elif self.type == MatParam.Bool :
             if self.value :
                 return 'true'
@@ -433,8 +529,6 @@ class MatParam :
             return 'String'
         elif self.type == MatParam.Texture:
             return 'Texture'
-        elif self.type == MatParam.Color:
-            return 'Color'
         else :
             raise Exception('Invalid type!')
 
@@ -442,7 +536,7 @@ class MatParam :
         '''
         Dump content to stdout for debugging
         '''
-        print '    Name: {}, Type: {}, Value: {}'.format(self.name, self.typeAsString(), self.valueAsString())
+        dgLogger.info('    Name: {}, Type: {}, Value: {}'.format(self.name, self.typeAsString(), self.valueAsString()))
 
 #-------------------------------------------------------------------------------
 class Material :
@@ -453,8 +547,24 @@ class Material :
     def __init__(self, name='undefined', type='undefined') :
         self.name = name
         self.type = type
+        self.shaderName = 'None'
         self.params = []
         self.useCount = 0
+
+    @staticmethod
+    def createDefaultMaterial() :
+        '''
+        Returns a material object initialized with default params
+        '''
+        mat = Material('default', 'Lambert')
+        mat.addParam(MatParam('Emissive', MatParam.Float4, Vector(0.0, 0.0, 0.0)))
+        mat.addParam(MatParam('Ambient', MatParam.Float4, Vector(0.2, 0.2, 0.2)))
+        mat.addParam(MatParam('Diffuse', MatParam.Float4, Vector(0.8, 0.8, 0.8)))
+        mat.addParam(MatParam('Bump', MatParam.Float4, Vector(0.0, 0.0, 0.0)))
+        mat.addParam(MatParam('NormalMap', MatParam.Float4, Vector(0.0, 0.0, 0.0)))
+        mat.addParam(MatParam('TransparentColor', MatParam.Float4, Vector(0.0, 0.0, 0.0)))
+        mat.addParam(MatParam('DisplacementColor', MatParam.Float4, Vector(0.0, 0.0, 0.0)))
+        return mat
 
     def hasParam(self, paramName) :
         '''
@@ -471,8 +581,9 @@ class Material :
         Add a material param to the material
         '''
         if self.hasParam(param.name) :
-            raise Exception('Param {} already exists on material {}'.format(self.name, param.name))
-        self.params.append(param)
+            dgLogger.warning('Param {} already exists on material {}'.format(self.name, param.name))
+        else :
+            self.params.append(param)
 
     def getParam(self, name) :
         '''
@@ -497,10 +608,11 @@ class Material :
         '''
         Dump debug info to stdout.
         '''
-        print '  Name: {}'.format(self.name)
-        print '  Type: {}'.format(self.type)
-        print '  UseCount: {:d}'.format(self.useCount)
-        print '  Params:'
+        dgLogger.info('  Name: {}'.format(self.name))
+        dgLogger.info('  ShaderName: {}'.format(self.shaderName))
+        dgLogger.info('  Type: {}'.format(self.type))
+        dgLogger.info('  UseCount: {:d}'.format(self.useCount))
+        dgLogger.info('  Params:')
         for param in self.params :
             param.dump()
 
@@ -550,15 +662,16 @@ class Model :
         Add a new material, the material must not yet exist
         '''
         if self.findMaterial(material.name) != None :
-            raise Exception('Material {} already exists on Model {}!'.format(material.name, self.name))
-        self.materials.append(material)
+            dgLogger.warning('Material {} already exists on Model {}!'.format(material.name, self.name))
+        else :
+            self.materials.append(material)
 
     def dumpMaterials(self) :
         '''
         Dump materials to stdout for debugging
         '''
         for i in range(0, len(self.materials)) :
-            print 'Material {:d}'.format(i)
+            dgLogger.info('Material {:d}'.format(i))
             self.materials[i].dump()
 
 #--- eof

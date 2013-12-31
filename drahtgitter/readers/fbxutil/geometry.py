@@ -12,6 +12,7 @@ def buildVertexLayout(fbxScene) :
     Builds a vertex layout matching the information in the 
     provided fbxScene (iterates over all meshes and their layers)
     '''
+    dgLogger.debug('Detecting vertex layout:')
     vertexLayout = VertexLayout()
     vertexLayout.add(VertexComponent(('position', 0), 3))
 
@@ -32,40 +33,54 @@ def buildVertexLayout(fbxScene) :
                 if fbxLayer.GetNormals() :
                     vc = VertexComponent(('normal', normalCount), 3)
                     if not vertexLayout.contains(vc.nameAndIndex) :
-                        print 'Normal layer detected at layer {}'.format(layerIndex)
+                        dgLogger.debug('Normal {} at layer {} of node {}'.format(normalCount, layerIndex, fbxNode.GetName()))
                         vertexLayout.add(vc)
-                        normalCount += 1
+                    normalCount += 1
                 if fbxLayer.GetTangents() :
                     vc = VertexComponent(('tangent', tangentCount), 3)
                     if not vertexLayout.contains(vc.nameAndIndex) :
-                        print 'Tangent layer detected at layer {}'.format(layerIndex)
+                        dgLogger.debug('Tangent {} at layer {} of node {}'.format(tangentCount, layerIndex, fbxNode.GetName()))
                         vertexLayout.add(vc)
-                        tangentCount += 1
+                    tangentCount += 1
                 if fbxLayer.GetBinormals() :
                     vc = VertexComponent(('binormal', binormalCount), 3)
                     if not vertexLayout.contains(vc.nameAndIndex) :
-                        print 'Binormal layer detected at layer {}'.format(layerIndex)
+                        dgLogger.debug('Binormal {} at layer {} of node {}'.format(binormalCount, layerIndex, fbxNode.GetName()))
                         vertexLayout.add(vc)
-                        binormalCount += 1
+                    binormalCount += 1
                 if fbxLayer.GetUVs() :
                     vc = VertexComponent(('texcoord', uvCount), 2)
                     if not vertexLayout.contains(vc.nameAndIndex) :
-                        print 'UV layer detected at layer {}'.format(layerIndex)
+                        dgLogger.debug('UV {} at layer {} of node {}'.format(uvCount, layerIndex, fbxNode.GetName()))
                         vertexLayout.add(vc)
-                        uvCount += 1
+                    uvCount += 1
                 if fbxLayer.GetVertexColors() :
                     vc = VertexComponent(('color', colorCount), 4)
                     if not vertexLayout.contains(vc.nameAndIndex) :
-                        print 'Color layer detected at layer {}'.format(layerIndex)
+                        dgLogger.debug('Color {} at layer {} of node {}'.format(colorCount, layerIndex, fbxNode.GetName()))
                         vertexLayout.add(vc)
-                        colorCount += 1
+                    colorCount += 1
 
     return vertexLayout
 
 #-------------------------------------------------------------------------------
+def removeBadPolygons(fbxScene) :
+    '''
+    Goes through each mesh and removes degenerate triangles.
+    '''
+    for nodeIndex in range(0, fbxScene.GetNodeCount()) :
+        fbxNode = fbxScene.GetNode(nodeIndex)
+        fbxMesh = fbxNode.GetMesh()
+        if fbxMesh != None :
+            if fbxMesh.CheckSamePointTwice() :
+                numRemoved = fbxMesh.RemoveBadPolygons()
+                dgLogger.warning('Removed {} degenerate polygons from mesh at {}!'.format(numRemoved, fbxNode.GetName()))
+
+#-------------------------------------------------------------------------------
 def countTriangles(fbxScene) :
     '''
-    Count the number of triangles in the fbx scene
+    Count the number of triangles in the fbx scene, make sure that you called
+    removeBadPolygons() if the count should exclude degenerate triangles!
     '''
     numTriangles = 0
 
@@ -95,7 +110,7 @@ def extractGeometry(mesh, fbxNode, fbxMesh, materialIndex, curTriIndex) :
     normalTransform = FbxMatrix(affineMatrix)
 
     # extract positions; for each polygon:
-    pos0 = ('position', 0)
+    posOffset = mesh.getComponentOffset(('position', 0))
     for polyIndex in xrange(0, fbxMesh.GetPolygonCount()) :
         # for each point in polygon
         numPoints = fbxMesh.GetPolygonSize(polyIndex)
@@ -107,9 +122,8 @@ def extractGeometry(mesh, fbxNode, fbxMesh, materialIndex, curTriIndex) :
             posIndex = fbxMesh.GetPolygonVertex(polyIndex, pointIndex)
             fbxPos = fbxMesh.GetControlPointAt(posIndex)
             fbxPos = pointTransform.MultNormalize(fbxPos)
-            pos = Vector(fbxPos[0], fbxPos[1], fbxPos[2])
             vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
-            mesh.setVertex(vertexIndex, pos0, pos)
+            mesh.setData3(vertexIndex, posOffset, fbxPos[0], fbxPos[1], fbxPos[2])
 
         # add a new triangles
         startIndex = (curTriIndex + polyIndex) * 3
@@ -127,7 +141,7 @@ def extractGeometry(mesh, fbxNode, fbxMesh, materialIndex, curTriIndex) :
         # extract normals
         lNormals = fbxMesh.GetLayer(layerIndex).GetNormals()
         if lNormals :
-            normalComponent = ('normal', normalLayerCount)
+            normalOffset = mesh.getComponentOffset(('normal', normalLayerCount))
             normalLayerCount += 1
             for polyIndex in xrange(0, fbxMesh.GetPolygonCount()) :
                 for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
@@ -136,12 +150,12 @@ def extractGeometry(mesh, fbxNode, fbxMesh, materialIndex, curTriIndex) :
                     fbxNorm = normalTransform.MultNormalize(fbxNorm)
                     fbxNorm.Normalize()
                     vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
-                    mesh.setVertex(vertexIndex, normalComponent, Vector(fbxNorm[0], fbxNorm[1], fbxNorm[2]))
+                    mesh.setData3(vertexIndex, normalOffset, fbxNorm[0], fbxNorm[1], fbxNorm[2])
 
         # extract tangents
         lTangents = fbxMesh.GetLayer(layerIndex).GetTangents()
         if lTangents :
-            tangentComponent = ('tangent', tangentLayerCount)
+            tangentOffset = mesh.getComponentOffset(('tangent', tangentLayerCount))
             tangentLayerCount += 1
             for polyIndex in xrange(0, fbxMesh.GetPolygonCount()) :
                 for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
@@ -150,12 +164,12 @@ def extractGeometry(mesh, fbxNode, fbxMesh, materialIndex, curTriIndex) :
                     fbxTang = normalTransform.MultNormalize(fbxTang)
                     fbxTang.Normalize()
                     vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
-                    mesh.setVertex(vertexIndex, tangentComponent, Vector(fbxTang[0], fbxTang[1], fbxTang[2]))
+                    mesh.setData3(vertexIndex, tangentOffset, fbxTang[0], fbxTang[1], fbxTang[2])
 
         # extract binormals
         lBinormals = fbxMesh.GetLayer(layerIndex).GetBinormals()
         if lBinormals :
-            binormalComponent = ('binormal', binormalLayerCount)
+            binormalOffset = mesh.getComponentOffset(('binormal', binormalLayerCount))
             binormalLayerCount += 1
             for polyIndex in xrange(0, fbxMesh.GetPolygonCount()) :
                 for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
@@ -164,30 +178,30 @@ def extractGeometry(mesh, fbxNode, fbxMesh, materialIndex, curTriIndex) :
                     fbxBinorm = normalTransform.MultNormalize(fbxNorm)
                     fbxNorm.Normalize()
                     vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
-                    mesh.setVertex(vertexIndex, binormalComponent, Vector(fbxBinorm[0], fbxBinorm[1], fbxBinorm[2]))
+                    mesh.setData3(vertexIndex, binormalOffset, fbxBinorm[0], fbxBinorm[1], fbxBinorm[2])
 
         # extract UVs
         lUVs = fbxMesh.GetLayer(layerIndex).GetUVs()
         if lUVs :
-            uvComponent = ('texcoord', uvLayerCount)
+            uvOffset = mesh.getComponentOffset(('texcoord', uvLayerCount))
             uvLayerCount += 1
-            for polyIndex in range(0, fbxMesh.GetPolygonCount()) :
+            for polyIndex in xrange(0, fbxMesh.GetPolygonCount()) :
                 for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
                     cpIndex = fbxMesh.GetPolygonVertex(polyIndex, pointIndex)
                     fbxUV = extractLayerElement(fbxMesh, lUVs, polyIndex, pointIndex, cpIndex)
                     vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
-                    mesh.setVertex(vertexIndex, uvComponent, Vector(fbxUV[0], fbxUV[1]))
+                    mesh.setData2(vertexIndex, uvOffset, fbxUV[0], fbxUV[1])
 
         # extract vertex colors
         lColors = fbxMesh.GetLayer(layerIndex).GetVertexColors()
         if lColors :
-            colorComponent = ('color', colorLayerCount)
+            colorOffset = mesh.getComponentOffset(('color', colorLayerCount))
             colorLayerCount += 1
-            for polyIndex in range(0, fbxMesh.GetPolygonCount()) :
+            for polyIndex in xrange(0, fbxMesh.GetPolygonCount()) :
                 for pointIndex in range(0, fbxMesh.GetPolygonSize(polyIndex)) :
                     cpIndex = fbxMesh.GetPolygonVertex(polyIndex, pointIndex)
                     fbxColor = extractLayerElement(fbxMesh, lColors, polyIndex, pointIndex, cpIndex)
                     vertexIndex = (curTriIndex + polyIndex) * 3 + pointIndex
-                    mesh.setVertex(vertexIndex, colorComponent, Vector(fbxColor[0], fbxColor[1], fbxColor[2], fbxColor[3]))
+                    mesh.setData4(vertexIndex, colorOffset, fbxColor[0], fbxColor[1], fbxColor[2], fbxColor[3])
 
 

@@ -21,7 +21,7 @@ def getPropVector(fbxVec, fbxScale) :
 def extractLayerElement(fbxMesh, fbxLayer, polyIndex, pointIndex, controlPointIndex) :
     '''
     Extracts a layer element (normal, uv, ...) and returns the
-    element as FbxVector4
+    element as FbxVector4 or FbxVector2 (the latter for uvs)
     '''
     vertexIndex = polyIndex * 3 + pointIndex
     mapMode = fbxLayer.GetMappingMode()
@@ -45,11 +45,18 @@ def extractLayerElement(fbxMesh, fbxLayer, polyIndex, pointIndex, controlPointIn
     elif mapMode == FbxLayerElement.eNone :
         raise Exception('Mapping mode is eNone')
 
-    if isinstance(fbxVec, FbxVector2) : 
-        return FbxVector4(fbxVec[0], fbxVec[1], 0.0, 0.0)
-    else :
-        return fbxVec
+    return fbxVec
  
+#-------------------------------------------------------------------------------
+def dumpUserProperties(fbxObject) :
+    dgLogger.info('User properties of node {}:'.format(fbxObject.GetName()))
+    prop = fbxObject.GetFirstProperty()
+    while prop.IsValid() :
+        if prop.GetFlag(FbxPropertyAttr.eUserDefined) :
+            dgLogger.info('Label: {}'.format(prop.GetLabel().Buffer()))
+            dgLogger.info('Name: {}'.format(prop.GetName().Buffer()))
+            dgLogger.info('Type: {}'.format(prop.GetPropertyDataType().GetName()))
+        prop = fbxObject.GetNextProperty(prop)
 
 
 

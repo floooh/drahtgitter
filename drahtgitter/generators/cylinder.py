@@ -6,13 +6,11 @@ FIXME: UV coords!
 from ..core import *
 
 #-------------------------------------------------------------------------------
-def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStacks) :
+def generate(vertexLayout, baseRadius, topRadius, length, numSlices, numStacks) :
     '''
-    Generate cylinder mesh
+    Generate cylinder model
     '''
-    pos0 = ('position', 0)
-    norm0 = ('normal', 0)
-    tex0 = ('texcoord', 0)
+    dgLogger.debug('generators.cylinder')
 
     # generate a sin/cos table
     sinTable = []
@@ -34,17 +32,19 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
     numVerts = 2 * (numSlices+1) + (numStacks+1) * numSlices
     numTris  = 2 * numSlices + numSlices * numStacks * 2
     mesh = Mesh(vertexLayout, numVerts, numTris)
+    posOffset  = mesh.getComponentOffset(('position', 0))
+    normOffset = mesh.getComponentOffset(('normal', 0))
 
     # base cap vertices
     curVertexIndex = 0
     baseZ = -0.5 * length
-    mesh.setVertex(curVertexIndex, pos0, Vector(0.0, 0.0, baseZ))
-    mesh.setVertex(curVertexIndex, norm0, Vector(0.0, 0.0, -1.0))
+    mesh.setData3(curVertexIndex, posOffset, 0.0, 0.0, baseZ)
+    mesh.setData3(curVertexIndex, normOffset, 0.0, 0.0, -1.0)
     curVertexIndex += 1
     for i in range(0, numSlices) :
         pos = Vector(baseRadius * sinTable[i], baseRadius * cosTable[i], baseZ)
-        mesh.setVertex(curVertexIndex, pos0, pos)
-        mesh.setVertex(curVertexIndex, norm0, Vector(0.0, 0.0, -1.0))
+        mesh.setData3(curVertexIndex, posOffset, pos.x, pos.y, pos.z)
+        mesh.setData3(curVertexIndex, normOffset, 0.0, 0.0, -1.0)
         curVertexIndex += 1
 
     # stack vertices
@@ -56,24 +56,23 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
         for i in range(0, numSlices) :
             pos  = Vector(radius * sinTable[i], radius * cosTable[i], z)
             norm = Vector(normalXY * sinTable[i], normalXY * cosTable[i], normalZ)  
-            mesh.setVertex(curVertexIndex, pos0, pos)
-            mesh.setVertex(curVertexIndex, norm0, norm)
+            mesh.setData3(curVertexIndex, posOffset, pos.x, pos.y, pos.z)
+            mesh.setData3(curVertexIndex, normOffset, norm.x, norm.y, norm.z)
             curVertexIndex += 1
 
     # top cap vertices
     topZ = 0.5 * length
     for i in range(0, numSlices) :
         pos = Vector(topRadius * sinTable[i], topRadius * cosTable[i], topZ)
-        mesh.setVertex(curVertexIndex, pos0, pos)
-        mesh.setVertex(curVertexIndex, norm0, Vector(0.0, 0.0, 1.0))
+        mesh.setData3(curVertexIndex, posOffset, pos.x, pos.y, pos.z)
+        mesh.setData3(curVertexIndex, normOffset, 0.0, 0.0, 1.0)
         curVertexIndex += 1
 
-    mesh.setVertex(curVertexIndex, pos0, Vector(0.0, 0.0, topZ))
-    mesh.setVertex(curVertexIndex, norm0, Vector(0.0, 0.0, 1.0))
+    mesh.setData3(curVertexIndex, posOffset, 0.0, 0.0, topZ)
+    mesh.setData3(curVertexIndex, normOffset, 0.0, 0.0, 1.0)
     curVertexIndex += 1
     if curVertexIndex != mesh.getNumVertices() :
         raise Exception("Vertex count mismatch!")
-
 
     # generate triangles
     triIndex = 0
@@ -115,6 +114,11 @@ def generateMesh(vertexLayout, baseRadius, topRadius, length, numSlices, numStac
     if triIndex != mesh.getNumTriangles() :
         raise Exception("Triangle count mismatch")
 
-    return mesh
+    # create a dummy model
+    model = Model('cylinder')
+    model.mesh = mesh
+    model.addMaterial(Material.createDefaultMaterial())
+
+    return model
 
 #--- eof
